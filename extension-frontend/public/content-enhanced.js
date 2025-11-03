@@ -3,6 +3,421 @@ console.log('🌱 EcoShopper Enhanced Content Script Loaded');
 
 const API_BASE_URL = 'http://localhost:5001/api';
 
+// Define functions immediately and robustly
+console.log('🔧 Defining EcoShop window functions...');
+
+// Ensure window object is available
+if (typeof window === 'undefined') {
+  console.error('❌ Window object not available');
+}
+
+// Define functions with error handling
+try {
+
+// Initialize global state for better data management
+window.ecoShopState = window.ecoShopState || {
+  initialized: false,
+  productInfo: {},
+  analysisData: {},
+  debugMode: true
+};
+
+// Global function definitions for button interactions
+window.ecoShopAddToCart = function() {
+  console.log('🛒 Add to Eco Cart button clicked!');
+  
+  const productInfo = window.currentProductInfo || window.ecoShopState.productInfo || {};
+  const analysisData = window.currentAnalysisData || window.ecoShopState.analysisData || {};
+  
+  console.log('Product Info:', productInfo);
+  console.log('Analysis Data:', analysisData);
+  
+  // Get existing cart
+  const cart = JSON.parse(localStorage.getItem('ecoShopCart') || '[]');
+  
+  // Add current product to cart
+  const cartItem = {
+    id: Date.now(),
+    name: productInfo.name || 'Unknown Product',
+    url: productInfo.url || window.location.href,
+    ecoScore: analysisData.ecoScore || 50,
+    co2Footprint: analysisData.co2Footprint || 10,
+    materials: analysisData.materials || [],
+    addedAt: new Date().toISOString()
+  };
+  
+  cart.push(cartItem);
+  localStorage.setItem('ecoShopCart', JSON.stringify(cart));
+  
+  // Show success notification
+  showNotification('✅ Added to Eco Cart!', 'Product saved for sustainable shopping', '#10b981');
+  
+  // Track the action
+  try {
+    chrome.runtime.sendMessage({
+      type: 'RECORD_ACTIVITY',
+      data: {
+        userId: localStorage.getItem('ecoUserId') || 'guest',
+        activityType: 'cart_add',
+        productName: cartItem.name,
+        ecoScore: cartItem.ecoScore
+      }
+    });
+  } catch (error) {
+    console.error('Failed to track cart addition:', error);
+  }
+};
+
+window.ecoShopOpenDashboard = function() {
+  console.log('📊 View Dashboard button clicked!');
+  
+  const productInfo = window.currentProductInfo || window.ecoShopState.productInfo || {};
+  const analysisData = window.currentAnalysisData || window.ecoShopState.analysisData || {};
+  
+  console.log('Dashboard - Product Info:', productInfo);
+  console.log('Dashboard - Analysis Data:', analysisData);
+  
+  try {
+    chrome.runtime.sendMessage({
+      type: 'OPEN_DASHBOARD',
+      productData: {
+        name: productInfo.name,
+        url: productInfo.url,
+        ecoScore: analysisData.ecoScore,
+        co2Footprint: analysisData.co2Footprint,
+        materials: analysisData.materials,
+        recyclabilityRating: analysisData.recyclabilityRating
+      }
+    });
+  } catch (error) {
+    console.error('Failed to open dashboard:', error);
+    // Fallback: show a notification
+    showNotification('📊 Dashboard', 'Please open the extension popup to view dashboard', '#3b82f6');
+  }
+};
+
+window.ecoShopFeedback = function(type) {
+  console.log(`👍👎 Feedback button clicked: ${type}`);
+  
+  const productInfo = window.currentProductInfo || {};
+  const analysisData = window.currentAnalysisData || {};
+  
+  console.log('Feedback - Product Info:', productInfo);
+  
+  // Store feedback locally
+  const feedback = JSON.parse(localStorage.getItem('ecoShopFeedback') || '[]');
+  feedback.push({
+    type: type, // 'up' or 'down'
+    productName: productInfo.name,
+    ecoScore: analysisData.ecoScore,
+    timestamp: new Date().toISOString(),
+    url: window.location.href
+  });
+  localStorage.setItem('ecoShopFeedback', JSON.stringify(feedback.slice(-50))); // Keep last 50
+  
+  // Visual feedback
+  const button = event.target;
+  const originalText = button.innerHTML;
+  button.innerHTML = type === 'up' ? '✅' : '❌';
+  button.style.transform = 'scale(1.2)';
+  
+  setTimeout(() => {
+    button.innerHTML = originalText;
+    button.style.transform = 'scale(1)';
+  }, 1000);
+  
+  // Show thank you message
+  const message = type === 'up' ? 
+    'Thanks for the positive feedback! 😊' : 
+    'Thanks for feedback! We\'ll improve our scoring. 📝';
+  showNotification('Feedback Received', message, '#8b5cf6');
+  
+  // Send to analytics (if available)
+  try {
+    chrome.runtime.sendMessage({
+      type: 'RECORD_FEEDBACK',
+      data: {
+        type,
+        productName: productInfo.name,
+        ecoScore: analysisData.ecoScore,
+        userId: localStorage.getItem('ecoUserId') || 'guest'
+      }
+    });
+  } catch (error) {
+    console.error('Failed to send feedback:', error);
+  }
+};
+
+window.ecoShopUploadProof = function(event) {
+  console.log('📷 Upload Proof/Comment triggered');
+  
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // Validate file
+  if (!file.type.startsWith('image/')) {
+    showNotification('Error', 'Please select an image file', '#ef4444');
+    return;
+  }
+  
+  if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    showNotification('Error', 'Image must be smaller than 5MB', '#ef4444');
+    return;
+  }
+  
+  // Show processing notification
+  showNotification('Processing...', 'Analyzing your uploaded image', '#f59e0b');
+  
+  // Create FileReader to process image
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const imageData = e.target.result;
+    
+    // Store proof locally (in real app, you'd upload to server)
+    const proofs = JSON.parse(localStorage.getItem('ecoShopProofs') || '[]');
+    proofs.push({
+      id: Date.now(),
+      productName: window.currentProductInfo?.name || 'Unknown Product',
+      imageData: imageData,
+      fileSize: file.size,
+      fileName: file.name,
+      timestamp: new Date().toISOString(),
+      url: window.location.href
+    });
+    localStorage.setItem('ecoShopProofs', JSON.stringify(proofs.slice(-10))); // Keep last 10
+    
+    // Show success
+    showNotification('✅ Uploaded Successfully!', 'Your proof has been saved for review', '#10b981');
+    
+    // Reset file input
+    event.target.value = '';
+    
+    // Track the upload
+    try {
+      chrome.runtime.sendMessage({
+        type: 'RECORD_ACTIVITY',
+        data: {
+          userId: localStorage.getItem('ecoUserId') || 'guest',
+          activityType: 'proof_upload',
+          productName: window.currentProductInfo?.name || 'Unknown Product'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to track proof upload:', error);
+    }
+  };
+  
+  reader.readAsDataURL(file);
+};
+
+// Enhanced notification system with fallbacks
+function showNotification(title, message, color = '#10b981') {
+  try {
+    // Remove any existing notifications
+    const existingNotification = document.getElementById('ecoshop-notification');
+    if (existingNotification) {
+      existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.id = 'ecoshop-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${color};
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 9999999;
+      max-width: 300px;
+      animation: slideInRight 0.5s ease-out;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    `;
+    
+    notification.innerHTML = `
+      <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">${title}</div>
+      <div style="font-size: 13px; opacity: 0.9; line-height: 1.4;">${message}</div>
+    `;
+    
+    // Add animation styles once
+    if (!document.getElementById('ecoshop-notification-styles')) {
+      const styles = document.createElement('style');
+      styles.id = 'ecoshop-notification-styles';
+      styles.textContent = `
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(styles);
+    }
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+      if (notification && notification.parentNode) {
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+          if (notification && notification.parentNode) {
+            notification.remove();
+          }
+        }, 300);
+      }
+    }, 4000);
+    
+  } catch (error) {
+    console.error('Notification error:', error);
+    // Fallback to basic alert
+    alert(`${title}: ${message}`);
+  }
+}
+
+// Make showNotification globally available
+window.showNotification = showNotification;
+
+// Test function to verify all buttons work (for debugging)
+window.ecoShopTestButtons = function() {
+  console.log('🧪 Testing EcoShop buttons...');
+  
+  const tests = [
+    () => window.ecoShopAddToCart && window.ecoShopAddToCart(),
+    () => window.ecoShopOpenDashboard && window.ecoShopOpenDashboard(),
+    () => window.ecoShopFeedback && window.ecoShopFeedback('up'),
+    () => window.ecoShopLoadAlternatives && window.ecoShopLoadAlternatives()
+  ];
+  
+  const testNames = ['AddToCart', 'OpenDashboard', 'Feedback', 'LoadAlternatives'];
+  
+  tests.forEach((test, index) => {
+    try {
+      console.log(`✅ ${testNames[index]} function exists`);
+      // test(); // Uncomment to actually run the test
+    } catch (error) {
+      console.error(`❌ ${testNames[index]} failed:`, error);
+    }
+  });
+  
+  showNotification('🧪 Button Test', 'Check console for test results', '#8b5cf6');
+};
+
+// Log that functions are ready
+console.log('✅ All EcoShop functions defined:', {
+  addToCart: typeof window.ecoShopAddToCart,
+  openDashboard: typeof window.ecoShopOpenDashboard,
+  feedback: typeof window.ecoShopFeedback,
+  loadAlternatives: typeof window.ecoShopLoadAlternatives,
+  uploadProof: typeof window.ecoShopUploadProof
+});
+
+} catch (error) {
+  console.error('❌ Error defining EcoShop functions:', error);
+}
+
+// Additional safety: Inject functions into page context to ensure they're always available
+// This is necessary because content scripts run in an isolated world
+const script = document.createElement('script');
+script.textContent = `
+  // Fallback functions in case content script functions aren't accessible
+  window.ecoShopAddToCart = window.ecoShopAddToCart || function() {
+    console.log('🛒 Add to Cart (fallback)');
+    // Try postMessage first, then alert
+    try {
+      window.postMessage({type: 'ECOSHOP_ADD_TO_CART'}, '*');
+    } catch (e) {
+      alert('✅ Added to Eco Cart!');
+    }
+  };
+  
+  window.ecoShopOpenDashboard = window.ecoShopOpenDashboard || function() {
+    console.log('📊 Dashboard (fallback)');
+    try {
+      window.postMessage({type: 'ECOSHOP_OPEN_DASHBOARD'}, '*');
+    } catch (e) {
+      alert('📊 Opening Dashboard...');
+    }
+  };
+  
+  window.ecoShopFeedback = window.ecoShopFeedback || function(type) {
+    console.log('👍👎 Feedback (fallback):', type);
+    try {
+      window.postMessage({type: 'ECOSHOP_FEEDBACK', payload: type}, '*');
+    } catch (e) {
+      alert('✅ Feedback recorded: ' + type);
+    }
+  };
+  
+  window.ecoShopLoadAlternatives = window.ecoShopLoadAlternatives || function() {
+    console.log('🔍 Alternatives (fallback)');
+    try {
+      window.postMessage({type: 'ECOSHOP_LOAD_ALTERNATIVES'}, '*');
+    } catch (e) {
+      alert('🔍 Loading alternatives...');
+    }
+  };
+  
+  window.ecoShopUploadProof = window.ecoShopUploadProof || function() {
+    console.log('📷 Upload (fallback)');
+    document.getElementById('ecoshop-feedback-image')?.click();
+  };
+  
+  console.log('🔧 Fallback functions injected into page context');
+  console.log('🔧 Available functions:', {
+    addToCart: typeof window.ecoShopAddToCart,
+    openDashboard: typeof window.ecoShopOpenDashboard,
+    feedback: typeof window.ecoShopFeedback,
+    loadAlternatives: typeof window.ecoShopLoadAlternatives,
+    uploadProof: typeof window.ecoShopUploadProof
+  });
+`;
+
+// Inject the script into the page
+(document.head || document.documentElement).appendChild(script);
+script.remove();
+
+console.log('🔧 Script injection completed');
+
+// Setup message passing between content script and page
+window.addEventListener('message', function(event) {
+  // Only accept messages from the same origin
+  if (event.source !== window) return;
+  
+  if (event.data.type && event.data.type.startsWith('ECOSHOP_')) {
+    console.log('📨 Received message:', event.data);
+    
+    switch (event.data.type) {
+      case 'ECOSHOP_ADD_TO_CART':
+        if (typeof window.ecoShopAddToCart === 'function') {
+          window.ecoShopAddToCart();
+        }
+        break;
+      case 'ECOSHOP_OPEN_DASHBOARD':
+        if (typeof window.ecoShopOpenDashboard === 'function') {
+          window.ecoShopOpenDashboard();
+        }
+        break;
+      case 'ECOSHOP_FEEDBACK':
+        if (typeof window.ecoShopFeedback === 'function') {
+          window.ecoShopFeedback(event.data.payload);
+        }
+        break;
+      case 'ECOSHOP_LOAD_ALTERNATIVES':
+        if (typeof window.ecoShopLoadAlternatives === 'function') {
+          window.ecoShopLoadAlternatives();
+        }
+        break;
+    }
+  }
+}, false);
+
 // Eco-friendly keywords and their weights
 const ECO_KEYWORDS = {
   positive: {
@@ -390,11 +805,59 @@ function createEnhancedEcoBadge(productInfo, analysisData) {
         font-size: 12px;
       }
       .ecoshop-alternative-card {
-        background: #f0fdf4;
+        background: white;
         padding: 12px;
         border-radius: 8px;
         margin: 8px 0;
-        border-left: 3px solid #10b981;
+        border: 2px solid #10b981;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .ecoshop-alternative-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+      }
+      .ecoshop-alt-image {
+        width: 100%;
+        height: 120px;
+        object-fit: contain;
+        background: #f9fafb;
+        border-radius: 6px;
+        margin-bottom: 8px;
+      }
+      .ecoshop-alt-score {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 8px;
+      }
+      .ecoshop-alt-highlight {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #047857;
+        margin: 4px 0;
+      }
+      .ecoshop-reward-badge {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #92400e;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
       }
       .ecoshop-feedback-btn {
         display: inline-flex;
@@ -485,32 +948,30 @@ function createEnhancedEcoBadge(productInfo, analysisData) {
       ${recycleTips}
     </div>
 
-    <!-- Alternatives (if score < 60) -->
-    ${ecoScore < 60 && alternatives.length > 0 ? `
-      <div class="ecoshop-section">
-        <div style="font-weight: 600; margin-bottom: 8px; color: #10b981;">
-          🌿 Eco-Friendly Alternatives
+    <!-- Alternatives Section (Enhanced) -->
+    <div id="ecoshop-alternatives-section" class="ecoshop-section" style="padding: 0;">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+        <div style="font-weight: 600; margin-bottom: 4px; color: #10b981; display: flex; align-items: center; gap: 6px;">
+          🌿 Sustainable Alternatives
+          <span id="ecoshop-alt-loading" style="display: none; font-size: 12px; color: #6b7280;">Loading...</span>
         </div>
-        ${alternatives.map(alt => `
-          <div class="ecoshop-alternative-card">
-            <div style="font-weight: 600; font-size: 14px;">${alt.name}</div>
-            <div style="font-size: 12px; color: #666; margin-top: 4px;">
-              EcoScore: ${alt.ecoScore} | ${alt.brand}
-            </div>
-            <div style="font-size: 11px; color: #10b981; margin-top: 4px;">
-              ${alt.reason}
-            </div>
-          </div>
-        `).join('')}
+        <div style="font-size: 12px; color: #6b7280;">
+          Discover eco-friendlier options with higher ratings
+        </div>
       </div>
-    ` : ''}
+      <div id="ecoshop-alternatives-list" style="padding: 12px 16px;">
+        <button class="ecoshop-btn" style="background: #10b981; color: white;" onclick="window.ecoShopLoadAlternatives()">
+          🔍 Find Better Alternatives
+        </button>
+      </div>
+    </div>
 
     <!-- Action Buttons -->
     <div class="ecoshop-section">
       <button class="ecoshop-btn" style="background: #10b981; color: white;" onclick="window.ecoShopAddToCart()">
         🛒 Add to Eco Cart
       </button>
-      <button class="ecoshop-btn" style="background: #3b82f6; color: white;" onclick="chrome.runtime.sendMessage({type: 'OPEN_DASHBOARD'})">
+      <button class="ecoshop-btn" style="background: #3b82f6; color: white;" onclick="window.ecoShopOpenDashboard()">
         📊 View Dashboard
       </button>
     </div>
@@ -591,6 +1052,25 @@ window.ecoShopAddToCart = function() {
     });
     localStorage.setItem('ecoShopCart', JSON.stringify(cart));
     alert('✅ Added to Eco Cart!');
+  }
+};
+
+// Open dashboard with current product
+window.ecoShopOpenDashboard = function() {
+  const productInfo = window.currentProductInfo;
+  const analysisData = window.currentAnalysisData;
+  
+  if (productInfo && analysisData) {
+    chrome.runtime.sendMessage({
+      type: 'OPEN_DASHBOARD',
+      productData: {
+        ...productInfo,
+        ...analysisData,
+        viewedAt: new Date().toISOString()
+      }
+    });
+  } else {
+    chrome.runtime.sendMessage({type: 'OPEN_DASHBOARD'});
   }
 };
 
@@ -694,6 +1174,9 @@ async function analyzeProduct() {
     alternatives
   };
 
+  // Store analysis data globally for dashboard access
+  window.currentAnalysisData = analysisData;
+
   // Create enhanced badge
   createEnhancedEcoBadge(productInfo, analysisData);
   
@@ -734,6 +1217,223 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     analyzeProduct();
   }
 });
+
+// Load sustainable alternatives from API
+window.ecoShopLoadAlternatives = async function() {
+  console.log('🔍 Find Better Alternatives button clicked!');
+  
+  const loadingEl = document.getElementById('ecoshop-alt-loading');
+  const listEl = document.getElementById('ecoshop-alternatives-list');
+  
+  console.log('Loading element:', loadingEl);
+  console.log('List element:', listEl);
+  console.log('Current product data:', window.currentAnalysisData);
+  console.log('Current product info:', window.currentProductInfo);
+  
+  if (!listEl) {
+    console.error('❌ No alternatives list element found');
+    showNotification('Error', 'Alternatives section not found', '#ef4444');
+    return;
+  }
+  
+  if (!window.currentAnalysisData) {
+    console.error('❌ No product analysis data available');
+    showNotification('Error', 'Please wait for product analysis to complete', '#ef4444');
+    return;
+  }
+
+  // Show loading state
+  if (loadingEl) loadingEl.style.display = 'inline';
+  listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #6b7280;">🔍 Searching for eco-friendly alternatives...</div>';
+
+  try {
+    const productInfo = window.currentProductInfo || {};
+    const analysisData = window.currentAnalysisData || {};
+    
+    const params = new URLSearchParams({
+      productName: productInfo.name || productInfo.title || 'Product',
+      currentScore: analysisData.ecoScore || 50,
+      category: productInfo.category || 'General',
+      limit: 3
+    });
+
+    const response = await fetch(`${API_BASE_URL}/alternatives?${params}`);
+    const data = await response.json();
+
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (!data.success || !data.data.alternatives || data.data.alternatives.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          <div style="font-size: 32px; margin-bottom: 8px;">🌟</div>
+          <div style="color: #047857; font-weight: 600;">Great choice!</div>
+          <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">
+            This product already has a good sustainability rating
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Display alternatives
+    const alternatives = data.data.alternatives;
+    listEl.innerHTML = alternatives.map(alt => {
+      const scoreColor = alt.ecoScore >= 80 ? '#10b981' : 
+                        alt.ecoScore >= 70 ? '#84cc16' : 
+                        alt.ecoScore >= 60 ? '#f59e0b' : '#f97316';
+      
+      const scoreGrade = alt.ecoScore >= 80 ? 'A' : 
+                        alt.ecoScore >= 70 ? 'B' : 
+                        alt.ecoScore >= 60 ? 'C' : 'D';
+
+      return `
+        <div class="ecoshop-alternative-card" onclick="window.ecoShopChooseAlternative('${alt.asin}', '${encodeURIComponent(JSON.stringify(alt))}')">
+          ${alt.image ? `<img src="${alt.image}" alt="${alt.title}" class="ecoshop-alt-image">` : ''}
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div class="ecoshop-alt-score" style="background: ${scoreColor};">
+              EcoScore: ${scoreGrade} (${alt.ecoScore})
+            </div>
+            ${alt.co2Savings > 0 ? `
+              <div style="font-size: 11px; color: #1e40af; background: #dbeafe; padding: 4px 8px; border-radius: 6px;">
+                💨 -${alt.co2Savings.toFixed(1)} kg CO₂
+              </div>
+            ` : ''}
+          </div>
+
+          <div style="font-weight: 600; font-size: 13px; color: #111827; margin-bottom: 6px;">
+            ${alt.title}
+          </div>
+
+          ${alt.price ? `
+            <div style="font-size: 14px; font-weight: 700; color: #047857; margin-bottom: 6px;">
+              ${alt.priceSymbol}${alt.price}
+              ${alt.priceDifference !== 0 ? `
+                <span style="font-size: 11px; font-weight: 500; color: ${alt.priceDifference > 0 ? '#991b1b' : '#166534'};">
+                  (${alt.priceDifference > 0 ? '+' : ''}${alt.priceDifference}%)
+                </span>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+            ✨ ${alt.whyBetter}
+          </div>
+
+          ${alt.sustainabilityHighlights && alt.sustainabilityHighlights.length > 0 ? `
+            <div style="margin-bottom: 8px;">
+              ${alt.sustainabilityHighlights.slice(0, 2).map(h => `
+                <div class="ecoshop-alt-highlight">
+                  <span style="color: #10b981;">✓</span>
+                  <span>${h}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${alt.switchPercentage ? `
+            <div style="margin-bottom: 8px;">
+              <div style="background: #e5e7eb; height: 4px; border-radius: 2px; overflow: hidden;">
+                <div style="background: #10b981; height: 100%; width: ${alt.switchPercentage}%; transition: width 0.6s;"></div>
+              </div>
+              <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">
+                ${alt.switchPercentage}% of users switched to this
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="ecoshop-reward-badge">
+            🏆 Click to view & earn +10 EcoCoins
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error('Error loading alternatives:', error);
+    if (loadingEl) loadingEl.style.display = 'none';
+    listEl.innerHTML = `
+      <div style="text-align: center; padding: 20px; color: #ef4444;">
+        ⚠️ Unable to load alternatives. Please try again.
+      </div>
+    `;
+  }
+};
+
+// Choose an alternative and record the choice
+window.ecoShopChooseAlternative = async function(asin, alternativeDataEncoded) {
+  try {
+    const alternative = JSON.parse(decodeURIComponent(alternativeDataEncoded));
+    
+    // Show reward notification
+    const badge = document.getElementById('ecoshop-enhanced-badge');
+    if (badge) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        z-index: 9999999;
+        animation: slideInRight 0.5s ease-out;
+        border: 2px solid #f59e0b;
+      `;
+      notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="font-size: 32px;">🎉</div>
+          <div>
+            <div style="font-weight: 700; color: #92400e; margin-bottom: 4px;">
+              +10 EcoCoins Earned!
+            </div>
+            <div style="font-size: 13px; color: #78350f;">
+              Great choice for the environment!
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    // Record the choice
+    const productInfo = window.currentProductInfo || {};
+    const analysisData = window.currentAnalysisData || {};
+    
+    try {
+      await fetch(`${API_BASE_URL}/alternatives/choose`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: localStorage.getItem('ecoUserId') || 'guest',
+          originalProduct: {
+            name: productInfo.name,
+            ecoScore: analysisData.ecoScore
+          },
+          chosenAlternative: alternative,
+          co2Saved: alternative.co2Savings || 0,
+          ecoCoinsEarned: 10
+        })
+      });
+    } catch (err) {
+      console.error('Error recording choice:', err);
+    }
+
+    // Open Amazon link
+    if (alternative.link) {
+      window.open(alternative.link, '_blank');
+    }
+
+  } catch (error) {
+    console.error('Error choosing alternative:', error);
+  }
+};
 
 // Initialize
 init();

@@ -1,4 +1,4 @@
-// Background service worker for Chrome Extension
+  // Background service worker for Chrome Extension
 console.log('🌱 EcoShop background service worker started');
 
 const API_BASE_URL = 'http://localhost:5001/api';
@@ -83,6 +83,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'SHOW_DETAILS':
       handleShowDetails(message.data);
+      break;
+    
+    case 'OPEN_DASHBOARD':
+      // Store product data and open dashboard
+      console.log('Opening dashboard with product data...', message.productData);
+      if (message.productData) {
+        chrome.storage.local.set({ currentProduct: message.productData }, () => {
+          chrome.tabs.create({
+            url: chrome.runtime.getURL('index.html')
+          });
+        });
+      } else {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('index.html')
+        });
+      }
       break;
     
     case 'GET_SUSTAINABILITY_DATA':

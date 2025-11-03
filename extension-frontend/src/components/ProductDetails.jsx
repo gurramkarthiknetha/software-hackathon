@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award, MapPin } from 'lucide-react';
 import { productAPI, userAPI } from '../api';
 import SupplyChainMap from './SupplyChainMap';
+import SustainableAlternatives from './SustainableAlternatives';
 
 const ProductDetails = ({ product, userId }) => {
   const [alternatives, setAlternatives] = useState([]);
@@ -266,6 +267,9 @@ const ProductDetails = ({ product, userId }) => {
           </div>
         </div>
       )}
+
+      {/* Sustainable Alternatives - Enhanced Component */}
+      <SustainableAlternatives currentProduct={product} userId={userId} />
 
       {/* Supply Chain Map */}
       <div className="card" style={{ marginTop: '20px' }}>

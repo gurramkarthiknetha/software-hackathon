@@ -221,8 +221,8 @@ function createEcoBadge(sustainabilityData) {
   // Add click handler for details button
   document.getElementById('ecoshop-details-btn')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({
-      type: 'SHOW_DETAILS',
-      data: sustainabilityData
+      type: 'OPEN_DASHBOARD',
+      productData: sustainabilityData
     });
   });
 

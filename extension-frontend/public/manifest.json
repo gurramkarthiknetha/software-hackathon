@@ -38,7 +38,7 @@
         "http://localhost/*",
         "http://127.0.0.1/*"
       ],
-      "js": ["content-enhanced.js"],
+      "js": ["error-filter.js", "preload-optimizer.js", "enhanced-functions.js", "content-enhanced.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Award, Leaf, Zap, Users, ChevronRight } from 'lucide-react';
+import { TrendingUp, Award, Leaf, Zap, Users, ChevronRight, ArrowUpRight, Trophy } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
+import { alternativesAPI } from '../api';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -22,7 +23,10 @@ const BADGES = [
   { id: 3, name: '🌎 Planet Saver', description: 'Viewed 25 eco products', requirement: 25, type: 'views' },
   { id: 4, name: '♻️ Recycling Champion', description: 'Added 5 items to cart', requirement: 5, type: 'cart' },
   { id: 5, name: '🏆 Eco Warrior', description: 'Earned 100 Green Points', requirement: 100, type: 'points' },
-  { id: 6, name: '💚 Sustainability Expert', description: 'Viewed 50 products', requirement: 50, type: 'views' }
+  { id: 6, name: '💚 Sustainability Expert', description: 'Viewed 50 products', requirement: 50, type: 'views' },
+  { id: 7, name: '🔄 Alternative Explorer', description: 'Switched to 1 sustainable alternative', requirement: 1, type: 'alternatives' },
+  { id: 8, name: '🎯 Choice Champion', description: 'Switched to 5 sustainable alternatives', requirement: 5, type: 'alternatives' },
+  { id: 9, name: '🌟 Eco Influencer', description: 'Switched to 10 sustainable alternatives', requirement: 10, type: 'alternatives' }
 ];
 
 const EnhancedDashboard = ({ userId }) => {
@@ -30,6 +34,7 @@ const EnhancedDashboard = ({ userId }) => {
   const [stats, setStats] = useState(null);
   const [badges, setBadges] = useState([]);
   const [news, setNews] = useState([]);
+  const [alternativeStats, setAlternativeStats] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -39,10 +44,21 @@ const EnhancedDashboard = ({ userId }) => {
     try {
       setLoading(true);
       
+      // Load alternative stats from API
+      let altStats = null;
+      try {
+        const altResponse = await alternativesAPI.getStats(userId || 'guest');
+        if (altResponse.success) {
+          altStats = altResponse.data;
+        }
+      } catch (error) {
+        console.error('Failed to load alternative stats:', error);
+      }
+      
       // Load from localStorage
       const history = JSON.parse(localStorage.getItem('ecoShopHistory') || '[]');
       const greenPoints = parseInt(localStorage.getItem('ecoShopGreenPoints') || '0');
-      const ecoCoins = parseInt(localStorage.getItem('ecoShopEcoCoins') || '0');
+      const ecoCoins = parseInt(localStorage.getItem('ecoShopEcoCoins') || '0') + (altStats?.ecoCoins || 0);
       const cart = JSON.parse(localStorage.getItem('ecoShopCart') || '[]');
       
       // Calculate statistics
@@ -52,11 +68,11 @@ const EnhancedDashboard = ({ userId }) => {
         ? Math.round(history.reduce((acc, p) => acc + p.ecoScore, 0) / history.length)
         : 0;
       
-      // Calculate CO2 saved (comparing to average product)
+      // Calculate CO2 saved (including alternatives)
       const averageCO2 = 20; // kg
       const actualCO2 = history.reduce((acc, p) => acc + (p.co2Footprint || 0), 0);
       const expectedCO2 = totalProducts * averageCO2;
-      const co2Saved = Math.max(0, expectedCO2 - actualCO2);
+      const co2Saved = Math.max(0, expectedCO2 - actualCO2) + (altStats?.totalCO2Saved || 0);
       
       // Category breakdown
       const categoryBreakdown = {};
@@ -78,13 +94,16 @@ const EnhancedDashboard = ({ userId }) => {
       const nextLevelPoints = level * 50;
       const progressToNextLevel = ((greenPoints % 50) / 50) * 100;
       
-      // Check earned badges
+      // Check earned badges (including alternative-based badges)
       const earnedBadges = BADGES.filter(badge => {
         if (badge.type === 'views') return totalProducts >= badge.requirement;
         if (badge.type === 'cart') return cart.length >= badge.requirement;
         if (badge.type === 'points') return greenPoints >= badge.requirement;
+        if (badge.type === 'alternatives') return (altStats?.alternativesSwitched || 0) >= badge.requirement;
         return false;
       });
+
+      setAlternativeStats(altStats);
       
       // Generate random news
       const randomNews = ECO_NEWS.sort(() => 0.5 - Math.random()).slice(0, 5);
@@ -207,14 +226,80 @@ const EnhancedDashboard = ({ userId }) => {
           </div>
         </div>
 
-        <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white' }}>
+        <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
           <div style={{ padding: '20px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>💨</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.co2Saved}kg</div>
-            <div style={{ fontSize: '14px', opacity: 0.9 }}>CO₂ Saved</div>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>�</div>
+            <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{alternativeStats?.alternativesSwitched || 0}</div>
+            <div style={{ fontSize: '14px', opacity: 0.9 }}>Alternatives Chosen</div>
           </div>
         </div>
       </div>
+
+      {/* Alternative Stats Section */}
+      {alternativeStats && alternativeStats.alternativesSwitched > 0 && (
+        <div className="card" style={{ marginBottom: '20px', background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', border: '2px solid #10b981' }}>
+          <div className="card-header">
+            <h3 style={{ margin: 0, color: '#047857', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trophy size={20} />
+              🌿 Sustainable Choice Impact
+            </h3>
+          </div>
+          <div style={{ padding: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ textAlign: 'center', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#059669' }}>{alternativeStats.alternativesSwitched}</div>
+                <div style={{ fontSize: '12px', color: '#047857' }}>Better Choices Made</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#059669' }}>{alternativeStats.totalCO2Saved?.toFixed(1) || 0}kg</div>
+                <div style={{ fontSize: '12px', color: '#047857' }}>Extra CO₂ Saved</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#059669' }}>{alternativeStats.ecoCoins || 0}</div>
+                <div style={{ fontSize: '12px', color: '#047857' }}>EcoCoins from Choices</div>
+              </div>
+            </div>
+            
+            {alternativeStats.recentChoices && alternativeStats.recentChoices.length > 0 && (
+              <div>
+                <h4 style={{ color: '#047857', marginBottom: '12px' }}>Recent Sustainable Choices:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {alternativeStats.recentChoices.slice(0, 3).map((choice, index) => (
+                    <div key={index} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      padding: '12px',
+                      background: 'white',
+                      borderRadius: '8px',
+                      border: '1px solid #d1fae5'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
+                          {choice.productName}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                          EcoScore: {choice.ecoScore} • {choice.metadata?.co2Saved?.toFixed(1) || 0}kg CO₂ saved
+                        </div>
+                      </div>
+                      <div style={{ 
+                        background: '#fef3c7', 
+                        padding: '4px 8px', 
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#92400e'
+                      }}>
+                        +{choice.metadata?.ecoCoinsEarned || 10} EcoCoins
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoShop Button Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            padding: 12px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .cart { background: #10b981; }
+        .dashboard { background: #3b82f6; }
+        .feedback { background: #8b5cf6; }
+        .alternatives { background: #f59e0b; }
+        .upload { background: #6b7280; }
+        
+        .product-demo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌱 EcoShop Button Test Page</h1>
+        
+        <div class="product-demo">
+            <h3>🧪 Simulated Product: Bamboo Water Bottle</h3>
+            <p>EcoScore: B (75) - Good environmental impact</p>
+            <p>This page simulates a product for testing EcoShop buttons</p>
+        </div>
+        
+        <h3>Test Buttons (Console should show function calls):</h3>
+        
+        <button class="test-button cart" onclick="testAddToCart()">
+            🛒 Test Add to Cart
+        </button>
+        
+        <button class="test-button dashboard" onclick="testOpenDashboard()">
+            📊 Test Dashboard
+        </button>
+        
+        <button class="test-button feedback" onclick="testFeedback()">
+            👍 Test Feedback
+        </button>
+        
+        <button class="test-button alternatives" onclick="testAlternatives()">
+            🔍 Test Alternatives
+        </button>
+        
+        <button class="test-button upload" onclick="testUpload()">
+            📷 Test Upload
+        </button>
+        
+        <div class="status" id="status">
+            Status: Waiting for content script to load...
+        </div>
+        
+        <h3>Debug Commands (Open Console and run):</h3>
+        <code>
+            window.ecoShopTestButtons();<br>
+            typeof window.ecoShopAddToCart;<br>
+            console.log(window.currentProductInfo);
+        </code>
+    </div>
+
+    <script>
+        // Simulate product data for testing
+        window.currentProductInfo = {
+            name: "Bamboo Water Bottle - Eco Friendly",
+            url: window.location.href,
+            price: 29.99,
+            description: "Sustainable bamboo water bottle, eco-friendly, biodegradable",
+            category: "Kitchen & Dining"
+        };
+        
+        window.currentAnalysisData = {
+            ecoScore: 75,
+            materials: [{name: 'bamboo', emoji: '🎋', score: 85, recyclable: true}],
+            co2Footprint: 8.5,
+            recyclabilityRating: 'B'
+        };
+        
+        // Test functions
+        function testAddToCart() {
+            console.log('🧪 Testing Add to Cart...');
+            updateStatus('Testing Add to Cart...');
+            try {
+                if (typeof window.ecoShopAddToCart === 'function') {
+                    window.ecoShopAddToCart();
+                    updateStatus('✅ Add to Cart function called successfully!', 'success');
+                } else {
+                    updateStatus('❌ window.ecoShopAddToCart is not a function', 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function testOpenDashboard() {
+            console.log('🧪 Testing Dashboard...');
+            updateStatus('Testing Dashboard...');
+            try {
+                if (typeof window.ecoShopOpenDashboard === 'function') {
+                    window.ecoShopOpenDashboard();
+                    updateStatus('✅ Dashboard function called successfully!', 'success');
+                } else {
+                    updateStatus('❌ window.ecoShopOpenDashboard is not a function', 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function testFeedback() {
+            console.log('🧪 Testing Feedback...');
+            updateStatus('Testing Feedback...');
+            try {
+                if (typeof window.ecoShopFeedback === 'function') {
+                    window.ecoShopFeedback('up');
+                    updateStatus('✅ Feedback function called successfully!', 'success');
+                } else {
+                    updateStatus('❌ window.ecoShopFeedback is not a function', 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function testAlternatives() {
+            console.log('🧪 Testing Alternatives...');
+            updateStatus('Testing Alternatives...');
+            try {
+                if (typeof window.ecoShopLoadAlternatives === 'function') {
+                    window.ecoShopLoadAlternatives();
+                    updateStatus('✅ Alternatives function called successfully!', 'success');
+                } else {
+                    updateStatus('❌ window.ecoShopLoadAlternatives is not a function', 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function testUpload() {
+            console.log('🧪 Testing Upload...');
+            updateStatus('Testing Upload...');
+            try {
+                if (typeof window.ecoShopUploadProof === 'function') {
+                    // Create a fake file input event
+                    const fakeEvent = { target: { files: [] } };
+                    window.ecoShopUploadProof(fakeEvent);
+                    updateStatus('✅ Upload function called successfully!', 'success');
+                } else {
+                    updateStatus('❌ window.ecoShopUploadProof is not a function', 'error');
+                }
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            
+            if (type === 'success') {
+                statusEl.style.background = '#dcfce7';
+                statusEl.style.color = '#166534';
+            } else if (type === 'error') {
+                statusEl.style.background = '#fee2e2';
+                statusEl.style.color = '#991b1b';
+            } else {
+                statusEl.style.background = '#fef3c7';
+                statusEl.style.color = '#92400e';
+            }
+        }
+        
+        // Check function availability periodically
+        function checkFunctions() {
+            const functions = [
+                'ecoShopAddToCart',
+                'ecoShopOpenDashboard', 
+                'ecoShopFeedback',
+                'ecoShopLoadAlternatives',
+                'ecoShopUploadProof'
+            ];
+            
+            const available = functions.filter(fn => typeof window[fn] === 'function');
+            
+            if (available.length === functions.length) {
+                updateStatus(`✅ All ${functions.length} EcoShop functions are available!`, 'success');
+                return true;
+            } else {
+                updateStatus(`⏳ ${available.length}/${functions.length} functions loaded...`);
+                return false;
+            }
+        }
+        
+        // Check every 500ms for up to 10 seconds
+        let checkCount = 0;
+        const checkInterval = setInterval(() => {
+            checkCount++;
+            if (checkFunctions() || checkCount >= 20) {
+                clearInterval(checkInterval);
+            }
+        }, 500);
+        
+        // Log available functions on page load
+        setTimeout(() => {
+            console.log('🔍 Available EcoShop functions:', {
+                addToCart: typeof window.ecoShopAddToCart,
+                openDashboard: typeof window.ecoShopOpenDashboard,
+                feedback: typeof window.ecoShopFeedback,
+                loadAlternatives: typeof window.ecoShopLoadAlternatives,
+                uploadProof: typeof window.ecoShopUploadProof
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

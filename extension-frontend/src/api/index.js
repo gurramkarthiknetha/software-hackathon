@@ -95,6 +95,51 @@ export const userAPI = {
   }
 };
 
+// Alternatives APIs
+export const alternativesAPI = {
+  getAlternatives: async (productName, currentScore, category, limit = 3) => {
+    const params = new URLSearchParams({
+      productName,
+      currentScore,
+      category: category || 'General',
+      limit
+    });
+    const response = await api.get(`/alternatives?${params}`);
+    return response.data;
+  },
+
+  searchEcoProducts: async (query, minScore = 60, limit = 10) => {
+    const params = new URLSearchParams({
+      query,
+      minScore,
+      limit
+    });
+    const response = await api.get(`/alternatives/search?${params}`);
+    return response.data;
+  },
+
+  getProductDetails: async (asin) => {
+    const response = await api.get(`/alternatives/product/${asin}`);
+    return response.data;
+  },
+
+  recordChoice: async (userId, originalProduct, chosenAlternative, co2Saved, ecoCoinsEarned = 10) => {
+    const response = await api.post('/alternatives/choose', {
+      userId,
+      originalProduct,
+      chosenAlternative,
+      co2Saved,
+      ecoCoinsEarned
+    });
+    return response.data;
+  },
+
+  getStats: async (userId) => {
+    const response = await api.get(`/alternatives/stats/${userId}`);
+    return response.data;
+  }
+};
+
 // Brand APIs
 export const brandAPI = {
   getAll: async (limit = 50, sort = '-sustainabilityScore') => {

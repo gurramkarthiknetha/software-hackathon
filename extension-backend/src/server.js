@@ -54,12 +54,14 @@ app.use((req, res, next) => {
 
 // Import protected routes
 import protectedRoutes from './routes/protectedRoutes.js';
+import alternativesRoutes from './routes/alternativesRoutes.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/brands', brandRoutes);
+app.use('/api/alternatives', alternativesRoutes);
 
 // Protected routes (admin, brand owner, user)
 app.use('/api/admin', protectedRoutes);
