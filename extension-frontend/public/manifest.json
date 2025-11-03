@@ -18,7 +18,10 @@
     "https://*.amazon.com/*",
     "https://*.amazon.in/*",
     "https://*.flipkart.com/*",
-    "http://localhost:5000/*"
+    "http://localhost:5001/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "file:///*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -29,9 +32,12 @@
       "matches": [
         "https://*.amazon.com/*",
         "https://*.amazon.in/*",
-        "https://*.flipkart.com/*"
+        "https://*.flipkart.com/*",
+        "file:///*demo-products.html*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
       ],
-      "js": ["content.js"],
+      "js": ["content-enhanced.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
     }

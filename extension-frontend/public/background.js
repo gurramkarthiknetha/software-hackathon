@@ -1,7 +1,7 @@
 // Background service worker for Chrome Extension
 console.log('🌱 EcoShop background service worker started');
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {
@@ -119,28 +119,62 @@ async function handleRecordActivity(activityData) {
 // Get user statistics
 async function handleGetUserStats() {
   try {
-    const { userId } = await chrome.storage.local.get(['userId']);
+    let { userId } = await chrome.storage.local.get(['userId']);
     
     if (!userId) {
-      // Create new user
-      const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      await chrome.storage.local.set({ userId: newUserId });
+      // Create new user ID
+      userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      await chrome.storage.local.set({ userId });
       
       // Initialize user on backend
-      await fetch(`${API_BASE_URL}/users/${newUserId}`);
+      const createResponse = await fetch(`${API_BASE_URL}/users/${userId}`);
+      const createData = await createResponse.json();
+      
+      if (!createData.success) {
+        throw new Error('Failed to create user');
+      }
       
       return {
         success: true,
         data: {
-          user: { userId: newUserId, level: 1, points: 0, achievements: [] },
-          stats: { totalViewed: 0, totalCarbonSaved: 0, sustainableChoices: 0 }
+          user: { userId, level: 1, points: 0, achievements: [] },
+          stats: { 
+            totalViewed: 0, 
+            totalCarbonSaved: 0, 
+            sustainableChoices: 0,
+            averageEcoScore: 'N/A',
+            categoryBreakdown: {},
+            recentActivity: []
+          }
         }
       };
     }
 
+    // Get user footprint
     const response = await fetch(`${API_BASE_URL}/users/${userId}/footprint`);
+    
+    // If user not found in database, create them
+    if (response.status === 404) {
+      const createResponse = await fetch(`${API_BASE_URL}/users/${userId}`);
+      const createData = await createResponse.json();
+      
+      return {
+        success: true,
+        data: {
+          user: { userId, level: 1, points: 0, achievements: [] },
+          stats: { 
+            totalViewed: 0, 
+            totalCarbonSaved: 0, 
+            sustainableChoices: 0,
+            averageEcoScore: 'N/A',
+            categoryBreakdown: {},
+            recentActivity: []
+          }
+        }
+      };
+    }
+    
     const data = await response.json();
-
     return data;
   } catch (error) {
     console.error('Error getting user stats:', error);
@@ -193,21 +227,23 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 // Context menu for quick actions (optional)
-try {
-  chrome.contextMenus.create({
-    id: 'check-sustainability',
-    title: 'Check Sustainability Score',
-    contexts: ['page', 'selection']
-  });
+chrome.runtime.onInstalled.addListener(() => {
+  try {
+    chrome.contextMenus.create({
+      id: 'check-sustainability',
+      title: 'Check Sustainability Score',
+      contexts: ['page', 'selection']
+    });
+  } catch (error) {
+    console.error('Error creating context menu:', error);
+  }
+});
 
-  chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId === 'check-sustainability') {
-      chrome.tabs.sendMessage(tab.id, { type: 'REFRESH_DATA' });
-    }
-  });
-} catch (error) {
-  console.error('Error creating context menu:', error);
-}
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'check-sustainability') {
+    chrome.tabs.sendMessage(tab.id, { type: 'REFRESH_DATA' });
+  }
+});
 
 // Periodic sync for user stats (every 30 minutes)
 chrome.alarms.create('syncUserData', { periodInMinutes: 30 });

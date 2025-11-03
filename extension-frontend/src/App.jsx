@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Leaf, TrendingUp, Award, Package, Settings } from 'lucide-react';
-import Dashboard from './components/Dashboard';
+import EnhancedDashboard from './components/EnhancedDashboard';
 import ProductDetails from './components/ProductDetails';
 import SettingsPanel from './components/SettingsPanel';
 import DevModeIndicator from './components/DevModeIndicator';
@@ -59,13 +59,13 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard userId={userId} />;
+        return <EnhancedDashboard userId={userId} />;
       case 'product':
         return <ProductDetails product={currentProduct} userId={userId} />;
       case 'settings':
         return <SettingsPanel userId={userId} />;
       default:
-        return <Dashboard userId={userId} />;
+        return <EnhancedDashboard userId={userId} />;
     }
   };
 

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoShopper Demo - Test Products</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+
+    .product-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+    }
+
+    .product-info {
+      padding: 20px;
+    }
+
+    .product-brand {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .product-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #1a1a1a;
+      line-height: 1.4;
+    }
+
+    .product-description {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .product-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .product-price {
+      font-size: 24px;
+      font-weight: bold;
+      color: #10b981;
+    }
+
+    .product-category {
+      display: inline-block;
+      padding: 6px 12px;
+      background: #f3f4f6;
+      border-radius: 16px;
+      font-size: 12px;
+      color: #374151;
+    }
+
+    .eco-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .eco-high {
+      color: #10b981;
+    }
+
+    .eco-medium {
+      color: #f59e0b;
+    }
+
+    .eco-low {
+      color: #ef4444;
+    }
+
+    .instructions {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      margin-bottom: 32px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .instructions h2 {
+      color: #10b981;
+      margin-bottom: 12px;
+      font-size: 24px;
+    }
+
+    .instructions ol {
+      padding-left: 20px;
+    }
+
+    .instructions li {
+      margin: 8px 0;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .products-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .header h1 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌱 EcoShopper Demo Store</h1>
+      <p>Test the Chrome extension with these sample products</p>
+    </div>
+
+    <div class="instructions">
+      <h2>📖 How to Test</h2>
+      <ol>
+        <li>Install the EcoShopper Chrome extension from the <code>dist/</code> folder</li>
+        <li>Open this page in Chrome (make sure the extension is loaded)</li>
+        <li>Click on any product below to see the eco-analysis badge appear</li>
+        <li>Check the floating badge for EcoScore, carbon footprint, materials, and alternatives</li>
+        <li>Try adding products to cart, giving feedback, and uploading proof images</li>
+        <li>Click the extension icon to view your dashboard with stats and rewards</li>
+      </ol>
+    </div>
+
+    <div class="products-grid">
+      <!-- Product 1: Low EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">🥤</div>
+        <div class="product-info">
+          <div class="product-brand">PlasticCo</div>
+          <h3 class="product-title" id="productTitle">Disposable Plastic Water Bottles - Pack of 24</h3>
+          <p class="product-description" id="description">Single-use plastic bottles made from petroleum-based materials. Convenient for one-time use. Non-recyclable packaging. Contains BPA and other chemicals.</p>
+          <div class="product-meta">
+            <span class="product-price">$9.99</span>
+            <span class="product-category">Food & Beverage</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 2: High EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">🎋</div>
+        <div class="product-info">
+          <div class="product-brand">EcoBrush</div>
+          <h3 class="product-title" id="productTitle">Bamboo Toothbrush Set - Organic & Biodegradable</h3>
+          <p class="product-description" id="description">Sustainable bamboo toothbrush made from renewable natural materials. 100% biodegradable and compostable. Eco-friendly packaging with recycled cardboard. Carbon-neutral production.</p>
+          <div class="product-meta">
+            <span class="product-price">$12.99</span>
+            <span class="product-category">Beauty & Personal Care</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 3: Medium EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">👕</div>
+        <div class="product-info">
+          <div class="product-brand">FashionMix</div>
+          <h3 class="product-title" id="productTitle">Cotton Blend T-Shirt - 70% Cotton 30% Polyester</h3>
+          <p class="product-description" id="description">Comfortable t-shirt made with cotton and synthetic polyester blend. Durable fabric with some natural materials. Standard packaging.</p>
+          <div class="product-meta">
+            <span class="product-price">$19.99</span>
+            <span class="product-category">Clothing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 4: High EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">🌿</div>
+        <div class="product-info">
+          <div class="product-brand">GreenHome</div>
+          <h3 class="product-title" id="productTitle">Organic Cotton Reusable Shopping Bags - Set of 5</h3>
+          <p class="product-description" id="description">Fair-trade certified organic cotton bags. Reusable and washable. Made from 100% natural renewable materials. Biodegradable and compostable at end of life. Zero-waste packaging.</p>
+          <div class="product-meta">
+            <span class="product-price">$24.99</span>
+            <span class="product-category">Home & Living</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 5: Low EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">💻</div>
+        <div class="product-info">
+          <div class="product-brand">TechGiant</div>
+          <h3 class="product-title" id="productTitle">Gaming Laptop - High Performance Computer</h3>
+          <p class="product-description" id="description">Powerful gaming laptop with plastic chassis. High energy consumption. Non-recyclable electronic components. Disposable lithium battery. Ships internationally with styrofoam packaging.</p>
+          <div class="product-meta">
+            <span class="product-price">$1,299.99</span>
+            <span class="product-category">Electronics</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 6: High EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">♻️</div>
+        <div class="product-info">
+          <div class="product-brand">HydroGreen</div>
+          <h3 class="product-title" id="productTitle">Stainless Steel Reusable Water Bottle - BPA Free</h3>
+          <p class="product-description" id="description">Eco-friendly reusable bottle made from recycled stainless steel. Replaces single-use plastic bottles. Durable metal construction. Recyclable at end of life. Minimal packaging with recycled cardboard.</p>
+          <div class="product-meta">
+            <span class="product-price">$29.99</span>
+            <span class="product-category">Home & Living</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 7: Medium EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">📱</div>
+        <div class="product-info">
+          <div class="product-brand">PhonePlus</div>
+          <h3 class="product-title" id="productTitle">Smartphone Case - Recycled Materials</h3>
+          <p class="product-description" id="description">Phone case made with 60% recycled plastic and 40% new synthetic materials. Protective and durable. Some eco-friendly features. Standard packaging.</p>
+          <div class="product-meta">
+            <span class="product-price">$15.99</span>
+            <span class="product-category">Electronics</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 8: High EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">🌳</div>
+        <div class="product-info">
+          <div class="product-brand">WoodCraft</div>
+          <h3 class="product-title" id="productTitle">Bamboo Kitchen Utensil Set - Sustainable & Natural</h3>
+          <p class="product-description" id="description">Complete kitchen set made from renewable bamboo. Biodegradable and compostable. Natural materials with no chemicals. Organic finish. Eco-friendly packaging made from recycled paper.</p>
+          <div class="product-meta">
+            <span class="product-price">$34.99</span>
+            <span class="product-category">Home & Living</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 9: Low EcoScore -->
+      <div class="product-card" onclick="simulateProductView(this)">
+        <div class="product-image">🍽️</div>
+        <div class="product-info">
+          <div class="product-brand">QuickServe</div>
+          <h3 class="product-title" id="productTitle">Disposable Plastic Plates & Cutlery - Party Pack</h3>
+          <p class="product-description" id="description">Single-use plastic plates, forks, and spoons. Convenient for parties. Made from non-biodegradable petroleum-based plastic. Non-recyclable in most areas. Contains toxic chemicals.</p>
+          <div class="product-meta">
+            <span class="product-price">$7.99</span>
+            <span class="product-category">Home & Living</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function simulateProductView(element) {
+      // Scroll to top to see the badge better
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Highlight selected product
+      document.querySelectorAll('.product-card').forEach(card => {
+        card.style.border = 'none';
+      });
+      element.style.border = '3px solid #10b981';
+      
+      // Send message to content script to analyze
+      setTimeout(() => {
+        window.postMessage({ type: 'ANALYZE_PRODUCT' }, '*');
+      }, 300);
+    }
+
+    // Show a welcome message
+    window.addEventListener('load', () => {
+      if (!localStorage.getItem('ecoShopWelcomeShown')) {
+        alert('🌱 Welcome to EcoShopper Demo!\n\nClick on any product to see its eco-analysis.\n\nMake sure the Chrome extension is installed and active.');
+        localStorage.setItem('ecoShopWelcomeShown', 'true');
+      }
+    });
+  </script>
+</body>
+</html>

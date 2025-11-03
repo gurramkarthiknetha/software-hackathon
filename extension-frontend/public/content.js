@@ -1,7 +1,46 @@
 // Content script for detecting and analyzing products on e-commerce pages
 console.log('🌱 EcoShop content script loaded');
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5001/api';
+
+// Eco-friendly keywords and their weights
+const ECO_KEYWORDS = {
+  positive: {
+    'recycled': 10, 'organic': 12, 'biodegradable': 15, 'eco-friendly': 10,
+    'bamboo': 8, 'sustainable': 10, 'natural': 8, 'renewable': 10,
+    'compostable': 12, 'reusable': 10, 'plant-based': 10, 'green': 5,
+    'eco': 8, 'environmental': 5, 'carbon-neutral': 15, 'zero-waste': 12,
+    'fair-trade': 8, 'ethical': 6, 'b-corp': 10, 'certified': 5,
+    'solar': 8, 'wind': 8, 'hemp': 7, 'jute': 7, 'cork': 6,
+    'upcycled': 10, 'refillable': 8, 'minimal-packaging': 8
+  },
+  negative: {
+    'plastic': -15, 'disposable': -12, 'single-use': -15, 'non-recyclable': -10,
+    'petroleum': -10, 'synthetic': -8, 'fossil': -12, 'toxic': -15,
+    'chemical': -8, 'bleached': -6, 'non-biodegradable': -12, 'pvc': -10,
+    'microplastic': -15, 'styrofoam': -12, 'polystyrene': -10
+  }
+};
+
+// Material detection patterns
+const MATERIALS = {
+  'cotton': { eco: 70, emoji: '🌿', recyclable: true },
+  'organic cotton': { eco: 90, emoji: '🌿', recyclable: true },
+  'polyester': { eco: 30, emoji: '⚠️', recyclable: false },
+  'bamboo': { eco: 95, emoji: '🎋', recyclable: true },
+  'plastic': { eco: 20, emoji: '💨', recyclable: false },
+  'glass': { eco: 75, emoji: '♻️', recyclable: true },
+  'metal': { eco: 80, emoji: '♻️', recyclable: true },
+  'steel': { eco: 85, emoji: '♻️', recyclable: true },
+  'aluminum': { eco: 80, emoji: '♻️', recyclable: true },
+  'wood': { eco: 70, emoji: '🌳', recyclable: true },
+  'paper': { eco: 65, emoji: '📄', recyclable: true },
+  'cardboard': { eco: 70, emoji: '📦', recyclable: true },
+  'rubber': { eco: 50, emoji: '⚠️', recyclable: false },
+  'leather': { eco: 40, emoji: '⚠️', recyclable: false },
+  'silk': { eco: 60, emoji: '🌿', recyclable: false },
+  'wool': { eco: 65, emoji: '🌿', recyclable: true }
+};
 
 // Configuration for different e-commerce sites
 const SITE_CONFIGS = {

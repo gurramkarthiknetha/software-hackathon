@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award } from 'lucide-react';
+import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award, MapPin } from 'lucide-react';
 import { productAPI, userAPI } from '../api';
+import SupplyChainMap from './SupplyChainMap';
 
 const ProductDetails = ({ product, userId }) => {
   const [alternatives, setAlternatives] = useState([]);
@@ -265,6 +266,22 @@ const ProductDetails = ({ product, userId }) => {
           </div>
         </div>
       )}
+
+      {/* Supply Chain Map */}
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div className="card-header">
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <MapPin size={20} />
+            Material Journey
+          </h3>
+        </div>
+        <div style={{ padding: '20px' }}>
+          <SupplyChainMap category={product.category} />
+          <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', fontSize: '13px', color: '#065f46' }}>
+            💡 <strong>Tip:</strong> Products with shorter supply chains typically have lower carbon footprints due to reduced shipping distances.
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
