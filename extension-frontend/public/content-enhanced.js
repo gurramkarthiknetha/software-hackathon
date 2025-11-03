@@ -968,10 +968,10 @@ function createEnhancedEcoBadge(productInfo, analysisData) {
 
     <!-- Action Buttons -->
     <div class="ecoshop-section">
-      <button class="ecoshop-btn" style="background: #10b981; color: white;" onclick="window.ecoShopAddToCart()">
+      <button id="ecoshop-add-btn" class="ecoshop-btn" style="background: #10b981; color: white;">
         🛒 Add to Eco Cart
       </button>
-      <button class="ecoshop-btn" style="background: #3b82f6; color: white;" onclick="window.ecoShopOpenDashboard()">
+      <button id="ecoshop-dashboard-btn" class="ecoshop-btn" style="background: #3b82f6; color: white;">
         📊 View Dashboard
       </button>
     </div>
@@ -990,8 +990,8 @@ function createEnhancedEcoBadge(productInfo, analysisData) {
         </button>
       </div>
       <div style="margin-top: 12px;">
-        <input type="file" id="ecoshop-feedback-image" accept="image/*" style="display: none;" onchange="window.ecoShopUploadProof(event)">
-        <button class="ecoshop-btn" style="background: #e5e7eb; color: #374151;" onclick="document.getElementById('ecoshop-feedback-image').click()">
+        <input type="file" id="ecoshop-feedback-image" accept="image/*" style="display: none;">
+        <button id="ecoshop-upload-btn" class="ecoshop-btn" style="background: #e5e7eb; color: #374151;">
           📷 Upload Proof/Comment
         </button>
       </div>
@@ -1000,7 +1000,57 @@ function createEnhancedEcoBadge(productInfo, analysisData) {
 
   document.body.appendChild(badge);
   makeDraggable(badge);
-  
+
+  // Wire up event listeners to avoid timing issues with inline onclick and isolated worlds
+  try {
+    const addBtn = badge.querySelector('#ecoshop-add-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', (e) => {
+        if (typeof window.ecoShopAddToCart === 'function') {
+          window.ecoShopAddToCart();
+        } else {
+          console.warn('ecoShopAddToCart not ready');
+          showNotification('Extension not ready', 'Please wait a moment and try again', '#f59e0b');
+        }
+      });
+    }
+
+    const dashBtn = badge.querySelector('#ecoshop-dashboard-btn');
+    if (dashBtn) {
+      dashBtn.addEventListener('click', (e) => {
+        if (typeof window.ecoShopOpenDashboard === 'function') {
+          window.ecoShopOpenDashboard();
+        } else {
+          console.warn('ecoShopOpenDashboard not ready');
+          showNotification('Extension not ready', 'Please open the extension popup to view dashboard', '#f59e0b');
+        }
+      });
+    }
+
+    const uploadBtn = badge.querySelector('#ecoshop-upload-btn');
+    const fileInput = badge.querySelector('#ecoshop-feedback-image');
+    if (uploadBtn && fileInput) {
+      uploadBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (event) => {
+        if (typeof window.ecoShopUploadProof === 'function') {
+          window.ecoShopUploadProof(event);
+        } else {
+          console.warn('ecoShopUploadProof not ready');
+          showNotification('Extension not ready', 'Upload handler not available', '#f59e0b');
+        }
+      });
+    }
+
+    // Feedback buttons
+    const fbUp = badge.querySelector(".ecoshop-feedback-btn:nth-of-type(1)");
+    const fbDown = badge.querySelector(".ecoshop-feedback-btn:nth-of-type(2)");
+    if (fbUp) fbUp.addEventListener('click', () => { if (typeof window.ecoShopFeedback === 'function') window.ecoShopFeedback('up'); });
+    if (fbDown) fbDown.addEventListener('click', () => { if (typeof window.ecoShopFeedback === 'function') window.ecoShopFeedback('down'); });
+
+  } catch (err) {
+    console.error('Failed to attach badge listeners:', err);
+  }
+
   return badge;
 }
 
