@@ -1,0 +1,220 @@
+// Background service worker for Chrome Extension
+console.log('🌱 EcoShop background service worker started');
+
+const API_BASE_URL = 'http://localhost:5000/api';
+
+// Handle extension installation
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    console.log('Extension installed');
+    
+    // Initialize default settings
+    chrome.storage.local.set({
+      settings: {
+        showEcoScoreOverlay: true,
+        minEcoScore: 'C',
+        notificationsEnabled: true,
+        darkMode: false
+      }
+    });
+
+    // Open welcome page
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('index.html')
+    });
+  }
+});
+
+// Listen for messages from content scripts and popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Message received:', message);
+
+  switch (message.type) {
+    case 'SHOW_DETAILS':
+      handleShowDetails(message.data);
+      break;
+    
+    case 'GET_SUSTAINABILITY_DATA':
+      handleGetSustainabilityData(message.productInfo)
+        .then(sendResponse)
+        .catch(error => sendResponse({ error: error.message }));
+      return true; // Keep channel open for async response
+    
+    case 'RECORD_ACTIVITY':
+      handleRecordActivity(message.data)
+        .then(sendResponse)
+        .catch(error => sendResponse({ error: error.message }));
+      return true;
+    
+    case 'GET_USER_STATS':
+      handleGetUserStats()
+        .then(sendResponse)
+        .catch(error => sendResponse({ error: error.message }));
+      return true;
+    
+    case 'GET_RECOMMENDATIONS':
+      handleGetRecommendations(message.category, message.currentScore)
+        .then(sendResponse)
+        .catch(error => sendResponse({ error: error.message }));
+      return true;
+
+    default:
+      console.log('Unknown message type:', message.type);
+  }
+});
+
+// Show product details (open popup or new tab)
+function handleShowDetails(data) {
+  // Store current product data
+  chrome.storage.local.set({ currentProduct: data }, () => {
+    // Open popup
+    chrome.action.openPopup();
+  });
+}
+
+// Get sustainability data from API
+async function handleGetSustainabilityData(productInfo) {
+  try {
+    const queryParams = new URLSearchParams({
+      name: productInfo.name,
+      url: productInfo.url,
+      brand: productInfo.brand
+    });
+
+    const response = await fetch(`${API_BASE_URL}/products?${queryParams}`);
+    const data = await response.json();
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching sustainability data:', error);
+    throw error;
+  }
+}
+
+// Record user activity
+async function handleRecordActivity(activityData) {
+  try {
+    const { userId } = await chrome.storage.local.get(['userId']);
+    
+    if (!userId) {
+      throw new Error('User ID not found');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/activity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(activityData)
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error recording activity:', error);
+    throw error;
+  }
+}
+
+// Get user statistics
+async function handleGetUserStats() {
+  try {
+    const { userId } = await chrome.storage.local.get(['userId']);
+    
+    if (!userId) {
+      // Create new user
+      const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      await chrome.storage.local.set({ userId: newUserId });
+      
+      // Initialize user on backend
+      await fetch(`${API_BASE_URL}/users/${newUserId}`);
+      
+      return {
+        success: true,
+        data: {
+          user: { userId: newUserId, level: 1, points: 0, achievements: [] },
+          stats: { totalViewed: 0, totalCarbonSaved: 0, sustainableChoices: 0 }
+        }
+      };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/footprint`);
+    const data = await response.json();
+
+    return data;
+  } catch (error) {
+    console.error('Error getting user stats:', error);
+    throw error;
+  }
+}
+
+// Get greener alternatives
+async function handleGetRecommendations(category, currentScore) {
+  try {
+    const queryParams = new URLSearchParams({
+      category,
+      currentScore: currentScore || 50,
+      limit: 5
+    });
+
+    const response = await fetch(`${API_BASE_URL}/products/recommendations?${queryParams}`);
+    const data = await response.json();
+
+    return data;
+  } catch (error) {
+    console.error('Error getting recommendations:', error);
+    throw error;
+  }
+}
+
+// Handle tab updates (detect when user navigates to product page)
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    const isSupportedSite = 
+      tab.url.includes('amazon.com') || 
+      tab.url.includes('amazon.in') ||
+      tab.url.includes('flipkart.com');
+
+    if (isSupportedSite) {
+      console.log('User on supported e-commerce site:', tab.url);
+      
+      // Badge to show extension is active
+      chrome.action.setBadgeText({ 
+        text: '🌱', 
+        tabId: tabId 
+      });
+      
+      chrome.action.setBadgeBackgroundColor({ 
+        color: '#10b981', 
+        tabId: tabId 
+      });
+    }
+  }
+});
+
+// Context menu for quick actions (optional)
+try {
+  chrome.contextMenus.create({
+    id: 'check-sustainability',
+    title: 'Check Sustainability Score',
+    contexts: ['page', 'selection']
+  });
+
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'check-sustainability') {
+      chrome.tabs.sendMessage(tab.id, { type: 'REFRESH_DATA' });
+    }
+  });
+} catch (error) {
+  console.error('Error creating context menu:', error);
+}
+
+// Periodic sync for user stats (every 30 minutes)
+chrome.alarms.create('syncUserData', { periodInMinutes: 30 });
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'syncUserData') {
+    console.log('Syncing user data...');
+    handleGetUserStats().catch(console.error);
+  }
+});
