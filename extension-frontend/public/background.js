@@ -25,6 +25,57 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// Monitor tab updates for OAuth callback
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    const url = new URL(changeInfo.url);
+    
+    // Check if this is the OAuth callback
+    if (url.origin === 'http://localhost:5173' && url.searchParams.has('token')) {
+      const token = url.searchParams.get('token');
+      const userId = url.searchParams.get('userId');
+      const role = url.searchParams.get('role');
+      
+      console.log('✅ OAuth callback detected, saving token...');
+      
+      // Fetch user data
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Save to chrome.storage
+          await chrome.storage.local.set({
+            token: token,
+            user: data.data,
+            userId: data.data.userId,
+            userRole: role,
+            isAuthenticated: true,
+            oauthInProgress: false
+          });
+          
+          console.log('✅ Authentication data saved to chrome.storage');
+          
+          // Close the OAuth tab and open the extension
+          chrome.tabs.remove(tabId);
+          
+          // Open extension popup or dashboard
+          chrome.tabs.create({
+            url: chrome.runtime.getURL('index.html')
+          });
+        }
+      } catch (error) {
+        console.error('Error saving auth data:', error);
+      }
+    }
+  }
+});
+
 // Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message);

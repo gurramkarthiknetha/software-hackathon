@@ -14,75 +14,63 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  
+
+  // 🔐 OAuth Fields
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true,
+    index: true
+  },
+  profilePicture: String,
+
+  // 🔐 Role-Based Access
+  role: {
+    type: String,
+    enum: ['user', 'brand_owner', 'admin'], 
+    default: 'user'
+  },
+
   // User Preferences
   preferences: {
-    showEcoScoreOverlay: {
-      type: Boolean,
-      default: true
-    },
+    showEcoScoreOverlay: { type: Boolean, default: true },
     minEcoScore: {
       type: String,
       enum: ['A', 'B', 'C', 'D', 'E'],
       default: 'C'
     },
-    prioritizeCertifications: [{
-      type: String
-    }],
-    preferredCategories: [{
-      type: String
-    }],
-    notificationsEnabled: {
-      type: Boolean,
-      default: true
-    },
-    darkMode: {
-      type: Boolean,
-      default: false
-    }
+    prioritizeCertifications: [{ type: String }],
+    preferredCategories: [{ type: String }],
+    notificationsEnabled: { type: Boolean, default: true },
+    darkMode: { type: Boolean, default: false }
   },
-  
+
   // Consumption Tracking
   footprintData: [{
-    productId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product'
-    },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
     productName: String,
     brand: String,
     ecoScore: String,
     carbonFootprint: Number,
-    date: {
-      type: Date,
-      default: Date.now
-    },
+    date: { type: Date, default: Date.now },
     action: {
       type: String,
       enum: ['viewed', 'clicked', 'purchased'],
       default: 'viewed'
     }
   }],
-  
+
   // Saved/Favorite Products
   savedProducts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product'
   }],
-  
+
   // Analytics
-  totalCarbonSaved: {
-    type: Number,
-    default: 0
-  },
-  totalRecyclableProducts: {
-    type: Number,
-    default: 0
-  },
-  sustainableChoicesCount: {
-    type: Number,
-    default: 0
-  },
-  
+  totalCarbonSaved: { type: Number, default: 0 },
+  totalRecyclableProducts: { type: Number, default: 0 },
+  sustainableChoicesCount: { type: Number, default: 0 },
+
   // Gamification
   achievements: [{
     name: String,
@@ -90,20 +78,11 @@ const userSchema = new mongoose.Schema({
     icon: String,
     earnedDate: Date
   }],
-  level: {
-    type: Number,
-    default: 1
-  },
-  points: {
-    type: Number,
-    default: 0
-  },
-  
+  level: { type: Number, default: 1 },
+  points: { type: Number, default: 0 },
+
   // Metadata
-  lastActive: {
-    type: Date,
-    default: Date.now
-  }
+  lastActive: { type: Date, default: Date.now }
 }, {
   timestamps: true
 });

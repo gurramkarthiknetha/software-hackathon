@@ -12,7 +12,8 @@
     "activeTab",
     "scripting",
     "alarms",
-    "contextMenus"
+    "contextMenus",
+    "identity"
   ],
   "host_permissions": [
     "https://*.amazon.com/*",

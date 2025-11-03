@@ -25,9 +25,14 @@ body {
 
 .app-header {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  padding: 16px 20px;
   color: white;
-  padding: 20px;
-  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .header-logo {
@@ -313,4 +318,85 @@ body {
 .badge-info {
   background: #dbeafe;
   color: #1e40af;
+}
+
+/* User Info & Logout */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+}
+
+.user-icon {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.user-role {
+  font-size: 10px;
+  opacity: 0.8;
+  text-transform: capitalize;
+  line-height: 1;
+}
+
+.logout-button {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive header */
+@media (max-width: 768px) {
+  .header-user {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
