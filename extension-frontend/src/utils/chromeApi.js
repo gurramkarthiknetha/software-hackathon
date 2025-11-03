@@ -10,6 +10,11 @@ export const isChromeExtension = () => {
          chrome.storage.local;
 };
 
+// Check if we're in a popup context (small window)
+export const isPopupMode = () => {
+  return window.innerWidth <= 600 && window.innerHeight <= 600;
+};
+
 // Storage helpers with fallbacks
 export const storage = {
   // Get items from storage
