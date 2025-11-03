@@ -25,6 +25,20 @@ const productSchema = new mongoose.Schema({
   },
   imageUrl: String,
   
+  // Product Physical Properties
+  energyConsumption: {
+    type: Number,
+    min: 0,
+    default: null,
+    description: 'Annual energy consumption in kWh'
+  },
+  weight: {
+    type: Number,
+    min: 0,
+    default: null,
+    description: 'Product weight in kg'
+  },
+  
   // Sustainability Scores (0-100)
   carbonScore: {
     type: Number,
@@ -63,13 +77,19 @@ const productSchema = new mongoose.Schema({
     max: 100
   },
   
-  // Environmental Impact
+  // Environmental Impact (from Climatiq API)
   carbonFootprint: {
     value: Number,
     unit: {
       type: String,
       default: 'kg CO2e'
-    }
+    },
+    method: String,
+    isFallback: {
+      type: Boolean,
+      default: false
+    },
+    lastCalculated: Date
   },
   waterUsage: {
     value: Number,
