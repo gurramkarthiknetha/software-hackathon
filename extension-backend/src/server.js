@@ -55,6 +55,7 @@ app.use((req, res, next) => {
 // Import protected routes
 import protectedRoutes from './routes/protectedRoutes.js';
 import alternativesRoutes from './routes/alternativesRoutes.js';
+import ecoRoutes from './routes/ecoRoutes.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -62,6 +63,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/alternatives', alternativesRoutes);
+app.use('/api/eco', ecoRoutes);
 
 // Protected routes (admin, brand owner, user)
 app.use('/api/admin', protectedRoutes);
@@ -86,6 +88,7 @@ app.get('/', (req, res) => {
       products: '/api/products',
       users: '/api/users',
       brands: '/api/brands',
+      eco: '/api/eco',
       health: '/api/health'
     }
   });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, Award, Leaf, Zap, Users, ChevronRight, ArrowUpRight, Trophy } from 'lucide-react';
+import { ecoAPI } from '../api';
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { alternativesAPI } from '../api';
@@ -35,6 +36,8 @@ const EnhancedDashboard = ({ userId }) => {
   const [badges, setBadges] = useState([]);
   const [news, setNews] = useState([]);
   const [alternativeStats, setAlternativeStats] = useState(null);
+  const [ecoTestResult, setEcoTestResult] = useState(null);
+  const [ecoTestLoading, setEcoTestLoading] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -139,6 +142,7 @@ const EnhancedDashboard = ({ userId }) => {
         <div className="spinner"></div>
         <p style={{ marginTop: '16px', color: '#666' }}>Loading your eco journey...</p>
       </div>
+      
     );
   }
 
@@ -185,6 +189,44 @@ const EnhancedDashboard = ({ userId }) => {
 
   return (
     <div style={{ padding: '20px' }}>
+      {/* Run Eco Models Test Button + Output */}
+      <div style={{ marginBottom: '20px' }}>
+        <button
+          onClick={async () => {
+            try {
+              setEcoTestLoading(true);
+              setEcoTestResult(null);
+
+              // Use the most recent product in history if available, otherwise a sample
+              const history = JSON.parse(localStorage.getItem('ecoShopHistory') || '[]');
+              const sample = history.length > 0 ? history[history.length - 1] : {
+                item_name: 'Sample Stainless Steel Water Bottle',
+                item_description: 'A double-walled metal bottle with plastic cap and silicone seal.'
+              };
+
+              const itemName = sample.productName || sample.item_name || sample.name || 'Sample Product';
+              const itemDescription = sample.description || sample.item_description || sample.shortDescription || '';
+
+              const resp = await ecoAPI.analyze(itemName, itemDescription);
+              setEcoTestResult(resp);
+            } catch (err) {
+              console.error('Eco test failed', err);
+              setEcoTestResult({ success: false, error: err.message || String(err) });
+            } finally {
+              setEcoTestLoading(false);
+            }
+          }}
+          style={{ padding: '8px 12px', background: '#10b981', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+        >
+          {ecoTestLoading ? 'Running...' : 'Run Eco Models Test'}
+        </button>
+
+        {ecoTestResult && (
+          <pre style={{ marginTop: '12px', background: '#f3f4f6', padding: '12px', borderRadius: '8px', overflowX: 'auto' }}>
+            {JSON.stringify(ecoTestResult, null, 2)}
+          </pre>
+        )}
+      </div>
       {/* Level Progress */}
       <div className="card" style={{ marginBottom: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <div style={{ padding: '20px' }}>

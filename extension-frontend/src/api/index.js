@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001/api';
+// Allow overriding via Vite env (VITE_API_BASE_URL). Default to port 5000 which
+// matches the backend `server.js` default PORT.
+const API_BASE_URL = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -190,3 +192,22 @@ export const setUserId = (userId) => {
 };
 
 export default api;
+
+// Eco pipeline APIs (calls backend Python pipeline)
+export const ecoAPI = {
+  analyze: async (itemName, itemDescription) => {
+    const response = await api.post('/eco/analyze', {
+      item_name: itemName,
+      item_description: itemDescription
+    });
+    return response.data;
+  },
+
+  materials: async (itemName, itemDescription) => {
+    const response = await api.post('/eco/materials', {
+      item_name: itemName,
+      item_description: itemDescription
+    });
+    return response.data;
+  }
+};
