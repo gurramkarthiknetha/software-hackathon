@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award, MapPin, Zap, RefreshCw } from 'lucide-react';
-import { productAPI, userAPI, sustainabilityAPI } from '../api';
+import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award, MapPin, Zap, RefreshCw, Beaker } from 'lucide-react';
+import { productAPI, userAPI, sustainabilityAPI, ecoAPI } from '../api';
 import SupplyChainMap from './SupplyChainMap';
 import SustainableAlternatives from './SustainableAlternatives';
 
@@ -10,11 +10,24 @@ const ProductDetails = ({ product, userId }) => {
   const [sustainabilityData, setSustainabilityData] = useState(null);
   const [loadingSustainability, setLoadingSustainability] = useState(false);
   const [sustainabilityError, setSustainabilityError] = useState(null);
+  
+  // New states for ML-driven metrics
+  const [mlMetrics, setMlMetrics] = useState(null);
+  const [loadingMlAnalysis, setLoadingMlAnalysis] = useState(false);
+  const [mlError, setMlError] = useState(null);
+  const [animatedValues, setAnimatedValues] = useState({
+    carbonFootprint: 50,
+    recyclability: 50,
+    ethicalSourcing: 50,
+    packagingImpact: 50
+  });
 
   useEffect(() => {
     if (product && product.category) {
       loadAlternatives();
       loadSustainabilityData();
+      // Automatically run ML analysis for new products
+      runMlAnalysis();
     }
   }, [product]);
 
@@ -101,6 +114,122 @@ const ProductDetails = ({ product, userId }) => {
     loadSustainabilityData();
   };
 
+  // Run ML analysis to get dynamic sustainability metrics
+  const runMlAnalysis = async () => {
+    try {
+      setLoadingMlAnalysis(true);
+      setMlError(null);
+
+      const itemName = product.name || 'Unknown Product';
+      const itemDescription = product.description || `${product.category} product by ${product.brand}`;
+
+      // Call the complete analysis endpoint
+      const response = await ecoAPI.completeAnalysis(itemName, itemDescription, {
+        title: itemName,
+        brand: product.brand || 'Unknown',
+        category: product.category,
+        description: itemDescription,
+        price: product.price || 0,
+        rating: product.rating || 0,
+        features: product.features || []
+      });
+
+      if (response.success && response.data) {
+        console.log('Full ML API response:', response.data);
+        setMlMetrics(response.data);
+        
+        // Extract metrics from the correct path in the response
+        const sustainability_metrics = response.data.combined?.sustainability_metrics || response.data.sustainabilityMetrics?.sustainability_metrics;
+        
+        if (sustainability_metrics) {
+          const newValues = {
+            // Convert scores (0-100) to percentages, handling both formats
+            carbonFootprint: sustainability_metrics.carbon_footprint?.score 
+              ? (sustainability_metrics.carbon_footprint.score > 1 
+                ? Math.round(100 - sustainability_metrics.carbon_footprint.score) // If score is 0-100, invert it
+                : Math.round((1 - sustainability_metrics.carbon_footprint.score) * 100)) // If score is 0-1, invert and scale
+              : 50,
+              
+            recyclability: sustainability_metrics.recyclability?.score 
+              ? (sustainability_metrics.recyclability.score > 1 
+                ? Math.round(sustainability_metrics.recyclability.score) // If score is 0-100, use directly
+                : Math.round(sustainability_metrics.recyclability.score * 100)) // If score is 0-1, scale to 100
+              : 50,
+              
+            ethicalSourcing: sustainability_metrics.ethical_sourcing?.score 
+              ? (sustainability_metrics.ethical_sourcing.score > 1 
+                ? Math.round(sustainability_metrics.ethical_sourcing.score) // If score is 0-100, use directly
+                : Math.round(sustainability_metrics.ethical_sourcing.score * 100)) // If score is 0-1, scale to 100
+              : 50,
+              
+            packagingImpact: sustainability_metrics.packaging?.score 
+              ? (sustainability_metrics.packaging.score > 1 
+                ? Math.round(100 - sustainability_metrics.packaging.score) // If score is 0-100, invert it
+                : Math.round((1 - sustainability_metrics.packaging.score) * 100)) // If score is 0-1, invert and scale
+              : 50
+          };
+          
+          console.log('Extracted ML metrics:', sustainability_metrics);
+          console.log('Calculated new values:', newValues);
+          
+          // Animate values smoothly
+          animateToNewValues(newValues);
+        } else {
+          console.log('No sustainability_metrics found in response');
+        }
+      } else {
+        setMlError('Failed to analyze product sustainability');
+      }
+    } catch (error) {
+      console.error('ML Analysis failed:', error);
+      let errorMessage = 'Unable to analyze product sustainability';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'ML Analysis endpoint not found. Please ensure the backend server is running.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error during analysis. Please check backend logs.';
+      } else if (error.request) {
+        errorMessage = 'Cannot connect to backend server. Please ensure it is running on http://localhost:5001';
+      }
+      
+      setMlError(errorMessage);
+    } finally {
+      setLoadingMlAnalysis(false);
+    }
+  };
+
+  // Smooth animation for metric values
+  const animateToNewValues = (targetValues) => {
+    const startValues = { ...animatedValues };
+    const animationDuration = 1500; // 1.5 seconds
+    const frameRate = 60;
+    const totalFrames = (animationDuration / 1000) * frameRate;
+    let currentFrame = 0;
+
+    const animate = () => {
+      currentFrame++;
+      const progress = Math.min(currentFrame / totalFrames, 1);
+      
+      // Easing function for smooth animation
+      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+      
+      const newValues = {};
+      Object.keys(targetValues).forEach(key => {
+        const start = startValues[key];
+        const target = targetValues[key];
+        newValues[key] = Math.round(start + (target - start) * easeOutCubic);
+      });
+      
+      setAnimatedValues(newValues);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  };
+
   if (!product) {
     return (
       <div className="card">
@@ -109,7 +238,12 @@ const ProductDetails = ({ product, userId }) => {
     );
   }
 
-  const score = product.ecoScore || 'C';
+  const score = mlMetrics?.combined?.sustainability_metrics?.sustainability_rating?.letter_grade || 
+                mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.sustainability_rating?.letter_grade || 
+                product.ecoScore || 'C';
+  const numericScore = mlMetrics?.combined?.sustainability_metrics?.sustainability_rating?.overall_score || 
+                       mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.sustainability_rating?.overall_score || 
+                       product.ecoScoreNumeric || 50;
   const scoreColor = {
     'A': '#10b981',
     'B': '#84cc16',
@@ -157,7 +291,12 @@ const ProductDetails = ({ product, userId }) => {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '18px', fontWeight: 600, color: scoreColor, marginBottom: '4px' }}>
-              {product.ecoScoreNumeric || 50}/100
+              {numericScore}/100
+              {mlMetrics && (
+                <span style={{ fontSize: '11px', color: '#059669', marginLeft: '8px' }}>
+                  ML Analyzed
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '13px', color: '#4b5563' }}>
               {score === 'A' && 'Excellent choice! This product has minimal environmental impact.'}
@@ -173,17 +312,83 @@ const ProductDetails = ({ product, userId }) => {
       {/* Detailed Metrics */}
       <div className="card">
         <div className="card-header">
-          <div className="card-title">Sustainability Metrics</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="card-title">Sustainability Metrics</div>
+            {mlMetrics && (
+              <div style={{ fontSize: '11px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Beaker size={12} />
+                ML Analyzed
+              </div>
+            )}
+          </div>
         </div>
         
+        {loadingMlAnalysis && (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            padding: '20px',
+            background: '#f8fafc',
+            borderRadius: '8px',
+            marginBottom: '16px'
+          }}>
+            <div className="spinner"></div>
+            <span style={{ fontSize: '14px', color: '#64748b' }}>
+              Analyzing product sustainability with machine learning...
+            </span>
+          </div>
+        )}
+        
+        {mlError && (
+          <div style={{ 
+            padding: '12px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '13px', color: '#991b1b', marginBottom: '8px' }}>
+              ⚠️ {mlError}
+            </div>
+            <button 
+              onClick={runMlAnalysis}
+              style={{ 
+                padding: '6px 12px',
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Retry Analysis
+            </button>
+          </div>
+        )}
+
         <div className="metric-row">
           <div className="metric-label">
             🌍 Carbon Footprint
+            {(mlMetrics?.combined?.sustainability_metrics?.carbon_footprint?.rating || 
+              mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.carbon_footprint?.rating) && (
+              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+                ({mlMetrics?.combined?.sustainability_metrics?.carbon_footprint?.rating || 
+                  mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.carbon_footprint?.rating})
+              </span>
+            )}
           </div>
           <div>
-            <div className="metric-value">{product.carbonScore || 50}/100</div>
+            <div className="metric-value">{animatedValues.carbonFootprint}/100</div>
             <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
-              <div className="progress-fill" style={{ width: `${product.carbonScore || 50}%` }}></div>
+              <div 
+                className="progress-fill animated-progress" 
+                style={{ 
+                  width: `${animatedValues.carbonFootprint}%`,
+                  transition: 'width 0.3s ease-out'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -191,11 +396,24 @@ const ProductDetails = ({ product, userId }) => {
         <div className="metric-row">
           <div className="metric-label">
             ♻️ Recyclability
+            {(mlMetrics?.combined?.sustainability_metrics?.recyclability?.rating || 
+              mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.recyclability?.rating) && (
+              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+                ({mlMetrics?.combined?.sustainability_metrics?.recyclability?.rating || 
+                  mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.recyclability?.rating})
+              </span>
+            )}
           </div>
           <div>
-            <div className="metric-value">{product.recyclability || 50}/100</div>
+            <div className="metric-value">{animatedValues.recyclability}/100</div>
             <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
-              <div className="progress-fill" style={{ width: `${product.recyclability || 50}%` }}></div>
+              <div 
+                className="progress-fill animated-progress" 
+                style={{ 
+                  width: `${animatedValues.recyclability}%`,
+                  transition: 'width 0.3s ease-out'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -203,26 +421,70 @@ const ProductDetails = ({ product, userId }) => {
         <div className="metric-row">
           <div className="metric-label">
             ⚖️ Ethical Sourcing
+            {(mlMetrics?.combined?.sustainability_metrics?.ethical_sourcing?.rating || 
+              mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.ethical_sourcing?.rating) && (
+              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+                ({mlMetrics?.combined?.sustainability_metrics?.ethical_sourcing?.rating || 
+                  mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.ethical_sourcing?.rating})
+              </span>
+            )}
           </div>
           <div>
-            <div className="metric-value">{product.ethicsScore || 50}/100</div>
+            <div className="metric-value">{animatedValues.ethicalSourcing}/100</div>
             <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
-              <div className="progress-fill" style={{ width: `${product.ethicsScore || 50}%` }}></div>
+              <div 
+                className="progress-fill animated-progress" 
+                style={{ 
+                  width: `${animatedValues.ethicalSourcing}%`,
+                  transition: 'width 0.3s ease-out'
+                }}
+              ></div>
             </div>
           </div>
         </div>
 
         <div className="metric-row">
           <div className="metric-label">
-            📦 Packaging
+            📦 Packaging Impact
+            {(mlMetrics?.combined?.sustainability_metrics?.packaging?.rating || 
+              mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.packaging?.rating) && (
+              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+                ({mlMetrics?.combined?.sustainability_metrics?.packaging?.rating || 
+                  mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.packaging?.rating})
+              </span>
+            )}
           </div>
           <div>
-            <div className="metric-value">{product.packagingScore || 50}/100</div>
+            <div className="metric-value">{animatedValues.packagingImpact}/100</div>
             <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
-              <div className="progress-fill" style={{ width: `${product.packagingScore || 50}%` }}></div>
+              <div 
+                className="progress-fill animated-progress" 
+                style={{ 
+                  width: `${animatedValues.packagingImpact}%`,
+                  transition: 'width 0.3s ease-out'
+                }}
+              ></div>
             </div>
           </div>
         </div>
+
+        {(mlMetrics?.combined?.sustainability_metrics || mlMetrics?.sustainabilityMetrics?.sustainability_metrics) && (
+          <div style={{ 
+            marginTop: '16px',
+            padding: '12px',
+            background: '#f0fdf4',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#065f46'
+          }}>
+            <strong>Analysis Details:</strong>
+            <br />
+            Materials detected: {(mlMetrics?.combined?.ml_analysis?.materials || mlMetrics?.mlOutput?.data?.materials || []).join(', ') || 'Unknown'}
+            <br />
+            Overall ESI Score: {(mlMetrics?.combined?.sustainability_metrics?.sustainability_rating?.overall_score || 
+                                 mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.sustainability_rating?.overall_score || 'N/A')}/100
+          </div>
+        )}
       </div>
 
       {/* Carbon Footprint from Climatiq API */}

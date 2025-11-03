@@ -423,3 +423,139 @@ body.chrome-extension .app-container {
     justify-content: space-between;
   }
 }
+
+/* Animated Progress Bars for Sustainability Metrics */
+.animated-progress {
+  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  background: linear-gradient(90deg, #10b981, #059669);
+  position: relative;
+  overflow: hidden;
+}
+
+.animated-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: progress-shine 2s ease-in-out;
+}
+
+@keyframes progress-shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Metric animation container */
+.metric-row {
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.metric-row:last-child {
+  border-bottom: none;
+}
+
+.metric-row:hover {
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 8px;
+  padding: 12px 8px;
+  margin: 0 -8px;
+}
+
+.metric-label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #111827;
+  font-size: 14px;
+}
+
+.progress-bar {
+  background: #e5e7eb;
+  border-radius: 6px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 6px;
+  transition: width 0.6s ease-out;
+}
+
+/* Enhanced loading spinner for ML analysis */
+.spinner.ml-spinner {
+  border-color: #3b82f6;
+  border-top-color: #1d4ed8;
+}
+
+/* Success animation for completed analysis */
+.ml-success {
+  animation: fadeInScale 0.5s ease-out;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive metric cards */
+@media (max-width: 768px) {
+  .metric-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .progress-bar {
+    width: 100%;
+  }
+  
+  .metric-value {
+    align-self: flex-end;
+  }
+}
+
+/* Enhanced card styling for sustainability metrics */
+.card {
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-radius: 12px 12px 0 0;
+}
+
+.card-title {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  font-size: 16px;
+}
