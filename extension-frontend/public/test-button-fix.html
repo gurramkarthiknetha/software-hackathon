@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoShop Button Fix Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #10b981;
+      margin-bottom: 10px;
+    }
+    .status {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 8px;
+      font-family: monospace;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      border-left: 4px solid #10b981;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-left: 4px solid #ef4444;
+    }
+    .test-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+      transition: all 0.2s;
+    }
+    .test-button:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+    .test-button.green {
+      background: #10b981;
+    }
+    .test-button.green:hover {
+      background: #059669;
+    }
+    .test-button.orange {
+      background: #f59e0b;
+    }
+    .test-button.orange:hover {
+      background: #d97706;
+    }
+    .console-log {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin: 15px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 3px 0;
+      border-bottom: 1px solid #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 EcoShop Button Fix Verification</h1>
+    <p>This page tests if the <code>window.ecoShopOpenDashboard</code> and other functions are properly injected into the page context.</p>
+    
+    <div id="function-status"></div>
+    
+    <h2>Test Buttons</h2>
+    <p>Click these buttons to verify they work without errors:</p>
+    
+    <button class="test-button" onclick="window.ecoShopOpenDashboard()">
+      📊 View Dashboard
+    </button>
+    
+    <button class="test-button green" onclick="window.ecoShopAddToCart()">
+      🛒 Add to Eco Cart
+    </button>
+    
+    <button class="test-button orange" onclick="window.ecoShopLoadAlternatives()">
+      🔍 Find Alternatives
+    </button>
+    
+    <button class="test-button" onclick="window.ecoShopFeedback('up')">
+      👍 Feedback Up
+    </button>
+    
+    <button class="test-button" onclick="window.ecoShopFeedback('down')">
+      👎 Feedback Down
+    </button>
+    
+    <h2>Console Output</h2>
+    <div id="console-output" class="console-log">
+      <div class="log-entry">Waiting for logs...</div>
+    </div>
+    
+    <h2>Manual Verification</h2>
+    <button class="test-button" onclick="runDiagnostics()">
+      🔍 Run Diagnostics
+    </button>
+  </div>
+
+  <script>
+    // Intercept console.log to display in page
+    const consoleOutput = document.getElementById('console-output');
+    const originalLog = console.log;
+    const originalError = console.error;
+    
+    function addLog(message, type = 'log') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.style.color = type === 'error' ? '#ef4444' : '#10b981';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleOutput.appendChild(entry);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addLog(args.join(' '), 'log');
+    };
+    
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addLog('ERROR: ' + args.join(' '), 'error');
+    };
+    
+    // Check function availability on page load
+    function checkFunctions() {
+      const statusDiv = document.getElementById('function-status');
+      const functions = [
+        'showNotification',
+        'ecoShopOpenDashboard',
+        'ecoShopAddToCart',
+        'ecoShopFeedback',
+        'ecoShopLoadAlternatives',
+        'ecoShopUploadProof'
+      ];
+      
+      let allPresent = true;
+      let html = '<h3>Function Availability Check:</h3>';
+      
+      functions.forEach(funcName => {
+        const exists = typeof window[funcName] === 'function';
+        allPresent = allPresent && exists;
+        const status = exists ? '✅' : '❌';
+        const className = exists ? 'success' : 'error';
+        html += `<div class="${className}">${status} window.${funcName}: ${typeof window[funcName]}</div>`;
+      });
+      
+      statusDiv.innerHTML = html;
+      
+      if (allPresent) {
+        console.log('✅ All EcoShop functions are properly defined in page context!');
+      } else {
+        console.error('❌ Some EcoShop functions are missing!');
+      }
+      
+      return allPresent;
+    }
+    
+    function runDiagnostics() {
+      console.log('🔍 Running diagnostics...');
+      console.log('');
+      console.log('=== Function Type Check ===');
+      console.log('typeof window.ecoShopOpenDashboard:', typeof window.ecoShopOpenDashboard);
+      console.log('typeof window.ecoShopAddToCart:', typeof window.ecoShopAddToCart);
+      console.log('typeof window.showNotification:', typeof window.showNotification);
+      console.log('');
+      console.log('=== Window Object Keys (filtered) ===');
+      const ecoKeys = Object.keys(window).filter(k => k.includes('ecoShop') || k.includes('showNotification'));
+      console.log('EcoShop-related keys:', ecoKeys.join(', '));
+      console.log('');
+      console.log('=== Extension Context Check ===');
+      console.log('chrome.runtime available:', typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined');
+      console.log('');
+      checkFunctions();
+    }
+    
+    // Run check after a short delay to allow extension scripts to load
+    setTimeout(() => {
+      console.log('🌱 EcoShop Button Fix Test Page Loaded');
+      checkFunctions();
+    }, 1000);
+    
+    // Re-check every 2 seconds for the first 10 seconds
+    let checkCount = 0;
+    const checkInterval = setInterval(() => {
+      checkCount++;
+      if (checkCount >= 5) {
+        clearInterval(checkInterval);
+        console.log('✅ Monitoring complete');
+      } else {
+        console.log(`Recheck #${checkCount}...`);
+        checkFunctions();
+      }
+    }, 2000);
+  </script>
+</body>
+</html>

@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award, MapPin } from 'lucide-react';
-import { productAPI, userAPI } from '../api';
+import { CheckCircle, XCircle, TrendingUp, Package, ExternalLink, Award, MapPin, Zap, RefreshCw } from 'lucide-react';
+import { productAPI, userAPI, sustainabilityAPI } from '../api';
 import SupplyChainMap from './SupplyChainMap';
 import SustainableAlternatives from './SustainableAlternatives';
 
 const ProductDetails = ({ product, userId }) => {
   const [alternatives, setAlternatives] = useState([]);
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [sustainabilityData, setSustainabilityData] = useState(null);
+  const [loadingSustainability, setLoadingSustainability] = useState(false);
+  const [sustainabilityError, setSustainabilityError] = useState(null);
 
   useEffect(() => {
     if (product && product.category) {
       loadAlternatives();
+      loadSustainabilityData();
     }
   }, [product]);
 
@@ -31,6 +35,70 @@ const ProductDetails = ({ product, userId }) => {
     } finally {
       setLoadingAlternatives(false);
     }
+  };
+
+  const loadSustainabilityData = async () => {
+    try {
+      setLoadingSustainability(true);
+      setSustainabilityError(null);
+
+      // Validate required fields
+      if (!product.category) {
+        setSustainabilityError('Product category is required for carbon footprint calculation');
+        setLoadingSustainability(false);
+        return;
+      }
+
+      // If product has an ID, fetch from backend
+      if (product._id) {
+        const response = await sustainabilityAPI.getProductSustainability(product._id);
+        if (response.success) {
+          setSustainabilityData(response.data);
+        }
+      } else {
+        // Calculate for new product
+        const response = await sustainabilityAPI.calculateSustainability({
+          name: product.name || 'Unknown Product',
+          brand: product.brand || 'Unknown',
+          category: product.category,
+          energyConsumption: product.energyConsumption || null,
+          weight: product.weight || null,
+          url: product.url || null
+        });
+        if (response.success) {
+          setSustainabilityData(response.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load sustainability data:', err);
+      
+      // Better error messages
+      let errorMessage = 'Unable to calculate carbon footprint';
+      
+      if (err.response) {
+        // Server responded with error
+        if (err.response.status === 404) {
+          errorMessage = 'Sustainability API endpoint not found. Please ensure the backend server is running on port 5001.';
+        } else if (err.response.status === 500) {
+          errorMessage = 'Server error. Please check if Climatiq API key is configured.';
+        } else {
+          errorMessage = err.response.data?.message || err.message;
+        }
+      } else if (err.request) {
+        // Request made but no response
+        errorMessage = 'Cannot connect to backend server. Please ensure it is running on http://localhost:5001';
+      } else {
+        errorMessage = err.message;
+      }
+      
+      setSustainabilityError(errorMessage);
+    } finally {
+      setLoadingSustainability(false);
+    }
+  };
+
+  const refreshSustainabilityData = () => {
+    loadSustainabilityData();
   };
 
   if (!product) {
@@ -156,6 +224,125 @@ const ProductDetails = ({ product, userId }) => {
           </div>
         </div>
       </div>
+
+      {/* Carbon Footprint from Climatiq API */}
+      {sustainabilityData && sustainabilityData.carbonFootprint && (
+        <div className="card" style={{ background: '#f0fdf4', border: '2px solid #10b981' }}>
+          <div className="card-header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="card-title" style={{ color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={18} />
+                Carbon Footprint Analysis
+                {sustainabilityData.carbonFootprint.isFallback && (
+                  <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px' }}>
+                    Estimated
+                  </span>
+                )}
+              </div>
+              <button 
+                onClick={refreshSustainabilityData}
+                disabled={loadingSustainability}
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  cursor: loadingSustainability ? 'not-allowed' : 'pointer',
+                  color: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '12px'
+                }}
+                title="Refresh sustainability data"
+              >
+                <RefreshCw size={14} className={loadingSustainability ? 'spinning' : ''} />
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: '#065f46', marginBottom: '4px', fontWeight: 500 }}>
+                🌍 Total Carbon Emissions
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#047857' }}>
+                {sustainabilityData.carbonFootprint.value.toFixed(2)} {sustainabilityData.carbonFootprint.unit}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#065f46', marginBottom: '4px', fontWeight: 500 }}>
+                📊 Carbon Score
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#047857' }}>
+                {sustainabilityData.scores?.carbonScore || 'N/A'}/100
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#047857', padding: '8px', background: '#dcfce7', borderRadius: '6px' }}>
+            <strong>Calculation Method:</strong> {sustainabilityData.carbonFootprint.method || 'Climatiq API'}
+            {sustainabilityData.cached && ' • Cached data'}
+            {sustainabilityData.lastUpdated && (
+              <span> • Last updated: {new Date(sustainabilityData.lastUpdated).toLocaleDateString()}</span>
+            )}
+          </div>
+
+          {sustainabilityData.carbonFootprint.isFallback && (
+            <div style={{ fontSize: '11px', color: '#92400e', padding: '8px', background: '#fef3c7', borderRadius: '6px', marginTop: '8px' }}>
+              ⚠️ This is an estimated value based on industry averages. Actual emissions may vary.
+            </div>
+          )}
+        </div>
+      )}
+
+      {loadingSustainability && (
+        <div className="card" style={{ background: '#f3f4f6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', padding: '20px' }}>
+            <div className="spinner"></div>
+            <span style={{ fontSize: '14px', color: '#6b7280' }}>Calculating carbon footprint...</span>
+          </div>
+        </div>
+      )}
+
+      {sustainabilityError && (
+        <div className="card" style={{ background: '#fef2f2', border: '2px solid #ef4444' }}>
+          <div className="card-header">
+            <div className="card-title" style={{ color: '#991b1b' }}>
+              ⚠️ Carbon Footprint Calculation Failed
+            </div>
+          </div>
+          <div style={{ fontSize: '13px', color: '#991b1b', marginBottom: '12px' }}>
+            {sustainabilityError}
+          </div>
+          {sustainabilityError.includes('backend server') && (
+            <div style={{ fontSize: '12px', color: '#7f1d1d', background: '#fee2e2', padding: '10px', borderRadius: '6px' }}>
+              <strong>Quick Fix:</strong>
+              <ol style={{ margin: '8px 0 0 20px', paddingLeft: 0 }}>
+                <li>Open terminal in <code>extension-backend</code> folder</li>
+                <li>Run: <code>npm run dev</code></li>
+                <li>Wait for "Server running on port 5001" message</li>
+                <li>Click the Refresh button above</li>
+              </ol>
+            </div>
+          )}
+          <button 
+            onClick={refreshSustainabilityData}
+            style={{ 
+              marginTop: '12px',
+              padding: '8px 16px',
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 500
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
 
       {/* Environmental Impact */}
       {product.carbonFootprint && (

@@ -140,6 +140,32 @@ export const alternativesAPI = {
   }
 };
 
+// Sustainability APIs (Climatiq Integration)
+export const sustainabilityAPI = {
+  getProductSustainability: async (productId) => {
+    const response = await api.get(`/sustainability/${productId}`);
+    return response.data;
+  },
+  
+  calculateSustainability: async (productData) => {
+    const response = await api.post('/sustainability/calculate', productData);
+    return response.data;
+  },
+  
+  getSupportedCategories: async () => {
+    const response = await api.get('/sustainability/categories');
+    return response.data;
+  },
+  
+  batchUpdate: async (productIds, forceRefresh = false) => {
+    const response = await api.post('/sustainability/batch-update', {
+      productIds,
+      forceRefresh
+    });
+    return response.data;
+  }
+};
+
 // Brand APIs
 export const brandAPI = {
   getAll: async (limit = 50, sort = '-sustainabilityScore') => {

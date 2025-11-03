@@ -10,6 +10,7 @@ import productRoutes from './routes/productRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import brandRoutes from './routes/brandRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import sustainabilityRoutes from './routes/sustainabilityRoutes.js';
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/alternatives', alternativesRoutes);
+app.use('/api/sustainability', sustainabilityRoutes);
 
 // Protected routes (admin, brand owner, user)
 app.use('/api/admin', protectedRoutes);
@@ -86,6 +88,7 @@ app.get('/', (req, res) => {
       products: '/api/products',
       users: '/api/users',
       brands: '/api/brands',
+      sustainability: '/api/sustainability',
       health: '/api/health'
     }
   });
