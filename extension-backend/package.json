@@ -20,6 +20,9 @@
   "description": "Backend API for Eco-Friendly Shopping Chrome Extension",
   "dependencies": {
     "axios": "^1.6.2",
+  "node-fetch": "^3.2.10",
+    "https-proxy-agent": "^5.0.1",
+  "cheerio": "^1.0.0-rc.12",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

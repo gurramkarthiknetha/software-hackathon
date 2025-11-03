@@ -43,8 +43,33 @@ export const getAlternatives = async (req, res) => {
       parseInt(limit)
     );
 
+    let finalAlternatives = alternatives || [];
+    let fallbackUsed = false;
+    console.log(`✅ Found ${finalAlternatives.length} eco-filtered alternatives from service`);
+
+    // If no eco-filtered alternatives found, fall back to a plain search for related products
+    if ((!finalAlternatives || finalAlternatives.length === 0) ) {
+      try { 
+        console.log('ℹ️ No eco-filtered alternatives found in service — performing plain search fallback');
+        const searchResults = await searchAmazonProducts(productName || currentProduct.name, parseInt(limit));
+        console.log(`🔍 Fallback search found ${searchResults.length} results`);
+        // Map search results into the same shape expected by the frontend
+        finalAlternatives = (searchResults || []).slice(0, parseInt(limit)).map(s => ({
+          ...s,
+          priceDifference: currentProduct.price ? (((s.price || 0) - currentProduct.price) / (currentProduct.price || 1) * 100).toFixed(1) : 0,
+          co2Savings: Math.abs((currentProduct.co2Footprint || 0) - (s.co2Footprint || 0)),
+          scoreDifference: (s.ecoScore || 0) - currentProduct.ecoScore,
+          whyBetter: (s.sustainabilityHighlights && s.sustainabilityHighlights.length) ? s.sustainabilityHighlights.slice(0,2).join(' • ') : 'Related product',
+          switchPercentage: Math.min(95, Math.round(50 + ((s.ecoScore || 50) - currentProduct.ecoScore) * 0.5))
+        }));
+        fallbackUsed = true;
+      } catch (searchErr) {
+        console.warn('Fallback search failed:', searchErr.message || searchErr);
+      }
+    }
+
     // Save alternatives to database for future reference
-    for (const alt of alternatives) {
+    for (const alt of finalAlternatives) {
       try {
         await Product.findOneAndUpdate(
           { url: alt.link },
@@ -76,8 +101,9 @@ export const getAlternatives = async (req, res) => {
           name: productName,
           ecoScore: currentScore
         },
-        alternatives: alternatives,
-        count: alternatives.length
+        alternatives: finalAlternatives,
+        count: finalAlternatives.length,
+        fallbackUsed
       }
     });
 

@@ -1,11 +1,30 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import fetch from 'node-fetch';
+import HttpsProxyAgent from 'https-proxy-agent';
+import { load } from 'cheerio';
 
 dotenv.config();
 
 const AMAZON_API_KEY = process.env.AMAZON_API_KEY || 'c94e5710-e8f8-4800-bce5-55a137c6ad75';
 const AMAZON_API_BASE_URL = 'https://api.rainforestapi.com/request';
+const AMAZON_DOMAIN = process.env.AMAZON_DOMAIN || 'amazon.in'; // Use Indian domain by default
+
+// Optional: use ScrapeOps residential proxy. Enable by setting USE_SCRAPEOPS=true in .env
+const USE_SCRAPEOPS = String(process.env.USE_SCRAPEOPS || 'true') === 'true';
+const SCRAPEOPS_PROXY_HOST = process.env.SCRAPEOPS_PROXY_HOST || 'residential-proxy.scrapeops.io:8181';
+
+function createScrapeOpsAgent() {
+  try {
+    const proxyAuth = `scrapeops:${AMAZON_API_KEY}`;
+    const proxyUrl = `http://${proxyAuth}@${SCRAPEOPS_PROXY_HOST}`;
+    return new HttpsProxyAgent(proxyUrl);
+  } catch (err) {
+    console.warn('Failed to create ScrapeOps proxy agent:', err.message || err);
+    return null;
+  }
+}
 
 // Eco-friendly keywords for scoring
 const ECO_KEYWORDS = {
@@ -35,27 +54,88 @@ const ECO_KEYWORDS = {
  */
 export const searchAmazonProducts = async (query, maxResults = 10) => {
   try {
-    const params = {
-      api_key: AMAZON_API_KEY,
-      type: 'search',
-      amazon_domain: 'amazon.com',
-      search_term: query,
-      page: 1
-    };
+    const domainsToTry = [AMAZON_DOMAIN, 'amazon.com'];
 
-    console.log('🔍 Searching Amazon for:', query);
-    
-    const response = await axios.get(AMAZON_API_BASE_URL, { 
-      params,
-      timeout: 10000 
-    });
-
-    if (!response.data || !response.data.search_results) {
-      console.log('❌ No search results found');
+    // Helper to extract product array from various Rainforest responses
+    function extractResults(resp) {
+      if (!resp) return [];
+      if (Array.isArray(resp.search_results) && resp.search_results.length) return resp.search_results;
+      if (Array.isArray(resp.results) && resp.results.length) return resp.results;
+      if (Array.isArray(resp.items) && resp.items.length) return resp.items;
+      // Rainforest product list sometimes stored under data.search_results
+      if (resp.data && Array.isArray(resp.data.search_results) && resp.data.search_results.length) return resp.data.search_results;
       return [];
     }
 
-    const products = response.data.search_results.slice(0, maxResults);
+    let products = [];
+    let lastError = null;
+
+    for (const domain of domainsToTry) {
+      const params = new URLSearchParams({
+        api_key: AMAZON_API_KEY,
+        type: 'search',
+        amazon_domain: domain,
+        search_term: query,
+        page: '1'
+      });
+
+      console.log('🔍 Searching Amazon for:', query, 'domain:', domain, 'useScrapeOps:', USE_SCRAPEOPS);
+
+      let responseData = null;
+
+      if (USE_SCRAPEOPS) {
+        const agent = createScrapeOpsAgent();
+        const url = `${AMAZON_API_BASE_URL}?${params.toString()}`;
+        try {
+          const res = await fetch(url, { agent, headers: { 'Accept': 'application/json' } });
+          responseData = await res.json();
+        } catch (err) {
+          lastError = err;
+          console.warn(`Fetch via ScrapeOps failed for domain ${domain}:`, err.message || err);
+        }
+      }
+
+      if (!responseData) {
+        try {
+          const resp = await axios.get(AMAZON_API_BASE_URL, { params, timeout: 10000 });
+          responseData = resp.data;
+        } catch (err) {
+          lastError = err;
+          console.error(`Axios call failed for domain ${domain}:`, err.message || err);
+        }
+      }
+
+      const found = extractResults(responseData);
+      if (found.length) {
+        products = found.slice(0, maxResults);
+        break;
+      } else {
+        console.log(`❌ No search results found for domain ${domain} — response keys: ${responseData ? Object.keys(responseData).join(',') : 'no-response'}`);
+      }
+    }
+
+    if (!products || products.length === 0) {
+      console.log('❌ No search results found (all domains tried)', lastError ? lastError.message : 'no error');
+
+      // Try HTML scraping fallback via ScrapeOps proxy
+      for (const domain of domainsToTry) {
+        try {
+          console.log('🔎 Attempting HTML scrape fallback for domain:', domain);
+          const scraped = await scrapeAmazonSearch(query, domain, maxResults);
+          if (scraped && scraped.length) {
+            products = scraped;
+            break;
+          }
+        } catch (scrapeErr) {
+          console.warn('Scrape fallback failed for', domain, scrapeErr.message || scrapeErr);
+        }
+      }
+
+      if (!products || products.length === 0) {
+        console.log('❌ Scrape fallback returned no results');
+        return [];
+      }
+    }
     
     // Transform and enhance with eco data
     const enhancedProducts = products.map(product => {
@@ -94,23 +174,39 @@ export const searchAmazonProducts = async (query, maxResults = 10) => {
  */
 export const getProductDetails = async (asin) => {
   try {
-    const params = {
+    const params = new URLSearchParams({
       api_key: AMAZON_API_KEY,
       type: 'product',
-      amazon_domain: 'amazon.com',
+      amazon_domain: AMAZON_DOMAIN,
       asin: asin
-    };
-
-    const response = await axios.get(AMAZON_API_BASE_URL, { 
-      params,
-      timeout: 10000 
     });
 
-    if (!response.data || !response.data.product) {
+    let responseData = null;
+    if (USE_SCRAPEOPS) {
+      const agent = createScrapeOpsAgent();
+      const url = `${AMAZON_API_BASE_URL}?${params.toString()}`;
+      try {
+  const res = await fetch(url, { agent, headers: { 'Accept': 'application/json' } });
+        responseData = await res.json();
+      } catch (err) {
+        console.warn('Fetch via ScrapeOps failed for product details, falling back to axios:', err.message || err);
+      }
+    }
+
+    if (!responseData) {
+      try {
+        const resp = await axios.get(AMAZON_API_BASE_URL, { params, timeout: 10000 });
+        responseData = resp.data;
+      } catch (err) {
+        console.error('Axios getProductDetails failed:', err.message || err);
+      }
+    }
+
+    if (!responseData || !responseData.product) {
       return null;
     }
 
-    const product = response.data.product;
+    const product = responseData.product;
     const ecoScore = calculateEcoScore(product);
     const sustainabilityData = analyzeSustainability(product);
 
@@ -134,6 +230,66 @@ export const getProductDetails = async (asin) => {
     return null;
   }
 };
+
+/**
+ * Scrape Amazon search results HTML through ScrapeOps proxy and extract product items
+ * @param {string} query
+ * @param {string} domain
+ * @param {number} maxResults
+ */
+async function scrapeAmazonSearch(query, domain = 'amazon.in', maxResults = 10) {
+  try {
+    const searchUrl = `https://www.${domain}/s?k=${encodeURIComponent(query)}`;
+    const agent = createScrapeOpsAgent();
+
+    const res = await fetch(searchUrl, { agent, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
+    const html = await res.text();
+  const $ = load(html);
+
+    const items = [];
+    $('div.s-result-item[data-asin]').each((i, el) => {
+      if (items.length >= maxResults) return;
+      const asin = $(el).attr('data-asin') || '';
+      if (!asin) return;
+
+      const title = $(el).find('h2 a span').first().text().trim() || $(el).find('h2').text().trim();
+      let image = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
+      const priceWhole = $(el).find('.a-price-whole').first().text().replace(/[\,\s]/g, '') || '';
+      const priceFraction = $(el).find('.a-price-fraction').first().text().trim() || '';
+      let price = 0;
+      if (priceWhole) {
+        const cleaned = priceWhole + (priceFraction ? '.' + priceFraction : '');
+        price = parseFloat(cleaned.replace(/[^0-9\.]/g, '')) || 0;
+      }
+
+      // Link
+      const linkRel = $(el).find('h2 a').attr('href') || '';
+      const link = linkRel ? (linkRel.startsWith('http') ? linkRel : `https://${domain}${linkRel}`) : `https://${domain}/dp/${asin}`;
+
+      items.push({
+        asin,
+        title,
+        price,
+        priceSymbol: domain.endsWith('.in') ? '₹' : '$',
+        image,
+        link,
+        rating: null,
+        ratingsTotal: 0,
+        ecoScore: 50,
+        co2Footprint: 0,
+        materials: [],
+        recyclabilityRating: 'C',
+        certifications: [],
+        sustainabilityHighlights: []
+      });
+    });
+
+    return items.slice(0, maxResults);
+  } catch (err) {
+    console.error('❌ scrapeAmazonSearch error:', err.message || err);
+    return [];
+  }
+}
 
 /**
  * Calculate EcoScore based on product data
@@ -379,6 +535,12 @@ export const findSustainableAlternatives = async (currentProduct, minScore = 60,
       product.ecoScore >= minScore &&
       product.asin !== currentProduct.asin
     );
+
+    // If no alternatives found by eco criteria, fall back to popular search results
+    if ((!alternatives || alternatives.length === 0) && allProducts && allProducts.length > 0) {
+      console.log('ℹ️ No eco-filtered alternatives found — falling back to top search results');
+      alternatives = allProducts.slice(0, maxResults).filter(p => p.asin !== currentProduct.asin);
+    }
 
     // Calculate comparison data
     alternatives = alternatives.map(alt => {
