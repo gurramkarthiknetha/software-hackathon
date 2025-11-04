@@ -157,9 +157,9 @@ const EnhancedDashboard = ({ userId }) => {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="dashboard-container">
       {/* Level Progress */}
-      <div className="card" style={{ marginBottom: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+      <div className="card level-progress-card">
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div>
@@ -182,35 +182,35 @@ const EnhancedDashboard = ({ userId }) => {
       </div>
 
       {/* Main Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-        <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
-          <div style={{ padding: '20px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🌟</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.greenPoints}</div>
-            <div style={{ fontSize: '14px', opacity: 0.9 }}>Green Points</div>
+      <div className="main-stats-grid">
+        <div className="card stats-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+          <div className="stats-card-content">
+            <span className="stats-card-icon">🌟</span>
+            <div className="stats-card-value">{stats.greenPoints}</div>
+            <div className="stats-card-label">Green Points</div>
           </div>
         </div>
 
-        <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white' }}>
-          <div style={{ padding: '20px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>💰</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{stats.ecoCoins}</div>
-            <div style={{ fontSize: '14px', opacity: 0.9 }}>EcoCoins</div>
+        <div className="card stats-card" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
+          <div className="stats-card-content">
+            <span className="stats-card-icon">💰</span>
+            <div className="stats-card-value">{stats.ecoCoins}</div>
+            <div className="stats-card-label">EcoCoins</div>
           </div>
         </div>
 
-        <div className="card" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
-          <div style={{ padding: '20px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🔄</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold' }}>{alternativeStats?.alternativesSwitched || 0}</div>
-            <div style={{ fontSize: '14px', opacity: 0.9 }}>Alternatives Chosen</div>
+        <div className="card stats-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
+          <div className="stats-card-content">
+            <span className="stats-card-icon">🔄</span>
+            <div className="stats-card-value">{alternativeStats?.alternativesSwitched || 0}</div>
+            <div className="stats-card-label">Alternatives Chosen</div>
           </div>
         </div>
       </div>
 
       {/* Alternative Stats Section */}
       {alternativeStats && alternativeStats.alternativesSwitched > 0 && (
-        <div className="card" style={{ marginBottom: '20px', background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', border: '2px solid #10b981' }}>
+        <div className="card alternative-impact-card">
           <div className="card-header">
             <h3 style={{ margin: 0, color: '#047857', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Trophy size={20} />
@@ -218,7 +218,7 @@ const EnhancedDashboard = ({ userId }) => {
             </h3>
           </div>
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+            <div className="alternative-stats-grid">
               <div style={{ textAlign: 'center', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #d1fae5' }}>
                 <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#059669' }}>{alternativeStats.alternativesSwitched}</div>
                 <div style={{ fontSize: '12px', color: '#047857' }}>Better Choices Made</div>
@@ -236,17 +236,9 @@ const EnhancedDashboard = ({ userId }) => {
             {alternativeStats.recentChoices && alternativeStats.recentChoices.length > 0 && (
               <div>
                 <h4 style={{ color: '#047857', marginBottom: '12px' }}>Recent Sustainable Choices:</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="recent-choices-list">
                   {alternativeStats.recentChoices.slice(0, 3).map((choice, index) => (
-                    <div key={index} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      padding: '12px',
-                      background: 'white',
-                      borderRadius: '8px',
-                      border: '1px solid #d1fae5'
-                    }}>
+                    <div key={index} className="recent-choice-item">
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
                           {choice.productName}
@@ -283,17 +275,9 @@ const EnhancedDashboard = ({ userId }) => {
           </h3>
         </div>
         <div style={{ padding: '20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px' }}>
+          <div className="achievements-grid">
             {badges.map(badge => (
-              <div key={badge.id} style={{ 
-                padding: '16px', 
-                background: '#f9fafb', 
-                border: '2px solid #10b981',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
+              <div key={badge.id} className="badge-item">
                 <div style={{ fontSize: '24px' }}>{badge.name.split(' ')[0]}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '600', color: '#059669' }}>{badge.name.substring(2)}</div>
@@ -313,7 +297,7 @@ const EnhancedDashboard = ({ userId }) => {
       </div>
 
       {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+      <div className="charts-grid">
         <div className="card">
           <div className="card-header">
             <h3 style={{ margin: 0 }}>Products by Category</h3>
@@ -351,15 +335,7 @@ const EnhancedDashboard = ({ userId }) => {
         </div>
         <div style={{ padding: '20px' }}>
           {news.map((item, index) => (
-            <div key={index} style={{ 
-              padding: '12px', 
-              marginBottom: '8px', 
-              background: '#f0fdf4', 
-              borderRadius: '8px',
-              border: '1px solid #bbf7d0',
-              fontSize: '14px',
-              color: '#047857'
-            }}>
+            <div key={index} className="eco-news-item">
               {item}
             </div>
           ))}

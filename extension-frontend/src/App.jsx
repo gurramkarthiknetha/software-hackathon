@@ -174,8 +174,6 @@ function App() {
           <Leaf className="logo-icon" />
           <h1>EcoShop</h1>
         </div>
-        <div className="header-subtitle">Sustainable Shopping Assistant</div>
-        
         {/* User Info & Logout */}
         <div className="header-user">
           <div className="user-info">
@@ -186,7 +184,7 @@ function App() {
             )}
             <div className="user-details">
               <span className="user-name">{user?.name || 'User'}</span>
-              <span className="user-role">{user?.role || 'user'}</span>
+              <span className="user-role">({user?.role || 'user'})</span>
             </div>
           </div>
           <button className="logout-button" onClick={handleLogout} title="Logout">
