@@ -255,67 +255,49 @@ const ProductDetails = ({ product, userId }) => {
   return (
     <div className="product-details">
       {/* Main Product Info */}
-      <div className="card">
-        <div style={{ display: 'flex', gap: '16px' }}>
+      <div className="card product-info-card">
+        <div className="product-info-container">
           {product.imageUrl && (
             <img 
               src={product.imageUrl} 
               alt={product.name}
-              style={{ width: '80px', height: '80px', objectFit: 'contain', borderRadius: '8px' }}
+              className="product-image"
             />
           )}
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
+          <div className="product-details-text">
+            <h3 className="product-name">
               {product.name}
             </h3>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
+            <div className="product-brand">
               Brand: <strong>{product.brand || 'Unknown'}</strong>
             </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
+            <div className="product-category">
               Category: <span className="badge badge-info">{product.category || 'Other'}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Eco Score */}
-      <div className="card" style={{ background: `${scoreColor}15`, border: `2px solid ${scoreColor}` }}>
-        <div className="card-header">
-          <div className="card-title" style={{ color: scoreColor }}>
-            Sustainability Rating
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div className={`eco-score-badge eco-score-${score}`} style={{ width: '64px', height: '64px', fontSize: '32px' }}>
-            {score}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '18px', fontWeight: 600, color: scoreColor, marginBottom: '4px' }}>
-              {numericScore}/100
-              {mlMetrics && (
-                <span style={{ fontSize: '11px', color: '#059669', marginLeft: '8px' }}>
-                  ML Analyzed
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: '13px', color: '#4b5563' }}>
-              {score === 'A' && 'Excellent choice! This product has minimal environmental impact.'}
-              {score === 'B' && 'Good choice! This product is above average in sustainability.'}
-              {score === 'C' && 'Average sustainability. Consider greener alternatives below.'}
-              {score === 'D' && 'Below average. Check out better alternatives below.'}
-              {score === 'E' && 'Poor sustainability score. We recommend choosing alternatives.'}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Detailed Metrics */}
-      <div className="card">
+      <div className="card sustainability-metrics-card">
         <div className="card-header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
             <div className="card-title">Sustainability Metrics</div>
             {mlMetrics && (
-              <div style={{ fontSize: '11px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div className="ml-analyzed-badge" style={{ 
+                fontSize: '11px', 
+                color: '#059669', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '4px' 
+              }}>
                 <Beaker size={12} />
                 ML Analyzed
               </div>
@@ -324,17 +306,9 @@ const ProductDetails = ({ product, userId }) => {
         </div>
         
         {loadingMlAnalysis && (
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px', 
-            padding: '20px',
-            background: '#f8fafc',
-            borderRadius: '8px',
-            marginBottom: '16px'
-          }}>
+          <div className="ml-loading-container">
             <div className="spinner"></div>
-            <span style={{ fontSize: '14px', color: '#64748b' }}>
+            <span className="ml-loading-text">
               Analyzing product sustainability with machine learning...
             </span>
           </div>
@@ -373,15 +347,21 @@ const ProductDetails = ({ product, userId }) => {
             🌍 Carbon Footprint
             {(mlMetrics?.combined?.sustainability_metrics?.carbon_footprint?.rating || 
               mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.carbon_footprint?.rating) && (
-              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+              <span className="rating-text" style={{ 
+                fontSize: '11px', 
+                color: '#6b7280', 
+                marginLeft: '8px'
+              }}>
                 ({mlMetrics?.combined?.sustainability_metrics?.carbon_footprint?.rating || 
                   mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.carbon_footprint?.rating})
               </span>
             )}
           </div>
-          <div>
-            <div className="metric-value">{animatedValues.carbonFootprint}/100</div>
-            <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
+          <div className="metric-value-container">
+            <div className="metric-value">
+              {animatedValues.carbonFootprint}/100
+            </div>
+            <div className="progress-bar">
               <div 
                 className="progress-fill animated-progress" 
                 style={{ 
@@ -398,15 +378,21 @@ const ProductDetails = ({ product, userId }) => {
             ♻️ Recyclability
             {(mlMetrics?.combined?.sustainability_metrics?.recyclability?.rating || 
               mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.recyclability?.rating) && (
-              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+              <span className="rating-text" style={{ 
+                fontSize: '11px', 
+                color: '#6b7280', 
+                marginLeft: '8px'
+              }}>
                 ({mlMetrics?.combined?.sustainability_metrics?.recyclability?.rating || 
                   mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.recyclability?.rating})
               </span>
             )}
           </div>
-          <div>
-            <div className="metric-value">{animatedValues.recyclability}/100</div>
-            <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
+          <div className="metric-value-container">
+            <div className="metric-value">
+              {animatedValues.recyclability}/100
+            </div>
+            <div className="progress-bar">
               <div 
                 className="progress-fill animated-progress" 
                 style={{ 
@@ -423,15 +409,21 @@ const ProductDetails = ({ product, userId }) => {
             ⚖️ Ethical Sourcing
             {(mlMetrics?.combined?.sustainability_metrics?.ethical_sourcing?.rating || 
               mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.ethical_sourcing?.rating) && (
-              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+              <span className="rating-text" style={{ 
+                fontSize: '11px', 
+                color: '#6b7280', 
+                marginLeft: '8px'
+              }}>
                 ({mlMetrics?.combined?.sustainability_metrics?.ethical_sourcing?.rating || 
                   mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.ethical_sourcing?.rating})
               </span>
             )}
           </div>
-          <div>
-            <div className="metric-value">{animatedValues.ethicalSourcing}/100</div>
-            <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
+          <div className="metric-value-container">
+            <div className="metric-value">
+              {animatedValues.ethicalSourcing}/100
+            </div>
+            <div className="progress-bar">
               <div 
                 className="progress-fill animated-progress" 
                 style={{ 
@@ -448,15 +440,21 @@ const ProductDetails = ({ product, userId }) => {
             📦 Packaging Impact
             {(mlMetrics?.combined?.sustainability_metrics?.packaging?.rating || 
               mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.packaging?.rating) && (
-              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>
+              <span className="rating-text" style={{ 
+                fontSize: '11px', 
+                color: '#6b7280', 
+                marginLeft: '8px'
+              }}>
                 ({mlMetrics?.combined?.sustainability_metrics?.packaging?.rating || 
                   mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.packaging?.rating})
               </span>
             )}
           </div>
-          <div>
-            <div className="metric-value">{animatedValues.packagingImpact}/100</div>
-            <div className="progress-bar" style={{ width: '100px', marginTop: '4px' }}>
+          <div className="metric-value-container">
+            <div className="metric-value">
+              {animatedValues.packagingImpact}/100
+            </div>
+            <div className="progress-bar">
               <div 
                 className="progress-fill animated-progress" 
                 style={{ 
@@ -469,20 +467,17 @@ const ProductDetails = ({ product, userId }) => {
         </div>
 
         {(mlMetrics?.combined?.sustainability_metrics || mlMetrics?.sustainabilityMetrics?.sustainability_metrics) && (
-          <div style={{ 
-            marginTop: '16px',
-            padding: '12px',
-            background: '#f0fdf4',
-            borderRadius: '8px',
-            fontSize: '12px',
-            color: '#065f46'
-          }}>
+          <div className="analysis-details">
             <strong>Analysis Details:</strong>
             <br />
-            Materials detected: {(mlMetrics?.combined?.ml_analysis?.materials || mlMetrics?.mlOutput?.data?.materials || []).join(', ') || 'Unknown'}
+            <span>
+              Materials detected: {(mlMetrics?.combined?.ml_analysis?.materials || mlMetrics?.mlOutput?.data?.materials || []).join(', ') || 'Unknown'}
+            </span>
             <br />
-            Overall ESI Score: {(mlMetrics?.combined?.sustainability_metrics?.sustainability_rating?.overall_score || 
-                                 mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.sustainability_rating?.overall_score || 'N/A')}/100
+            <span>
+              Overall ESI Score: {(mlMetrics?.combined?.sustainability_metrics?.sustainability_rating?.overall_score || 
+                                   mlMetrics?.sustainabilityMetrics?.sustainability_metrics?.sustainability_rating?.overall_score || 'N/A')}/100
+            </span>
           </div>
         )}
       </div>
