@@ -565,7 +565,7 @@ const ProductDetails = ({ product, userId }) => {
           </div>
         </div>
       )}
-
+{/* 
       {sustainabilityError && (
         <div className="card" style={{ background: '#fef2f2', border: '2px solid #ef4444' }}>
           <div className="card-header">
@@ -604,7 +604,7 @@ const ProductDetails = ({ product, userId }) => {
             Try Again
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Environmental Impact */}
       {product.carbonFootprint && (
